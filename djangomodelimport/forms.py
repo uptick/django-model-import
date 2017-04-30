@@ -1,5 +1,8 @@
 from django import forms
 
+from .fields import CachedChoiceField
+from .loaders import CachedInstanceLoader
+
 
 class ModelImportForm(forms.ModelForm):
     """ Extends the ModelForm to prime our caches and tweaks the validation
