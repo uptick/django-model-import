@@ -6,7 +6,7 @@ from setuptools import find_packages, setup
 version = '0.0.1'
 
 setup(
-    name='modelimport',
+    name='djangomodelimport',
     version=version,
     author='Aidan Lister',
     author_email='aidan@aidanlister.com',
