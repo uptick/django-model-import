@@ -4,7 +4,7 @@ from .fields import CachedChoiceField
 from .loaders import CachedInstanceLoader
 
 
-class ModelImportForm(forms.ModelForm):
+class ImporterModelForm(forms.ModelForm):
     """ Extends the ModelForm to prime our caches and tweaks the validation
     routines to ensure we are not doing too many queries with our cached fields.
     """

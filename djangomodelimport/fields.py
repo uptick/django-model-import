@@ -12,7 +12,7 @@ class CachedChoiceField(forms.Field):
     to_field = None
     instancecache = None
 
-    def __init__(self, queryset, to_field, *args, **kwargs):
+    def __init__(self, queryset, to_field=None, *args, **kwargs):
         self.queryset = queryset
         self.to_field = to_field
         return super().__init__(*args, **kwargs)
