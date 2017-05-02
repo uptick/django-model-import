@@ -4,14 +4,21 @@ from django import forms
 
 
 class CompositeLookupWidget(forms.Widget):
-    def __init__(self, keys, *args, **kwargs):
-        self.keys = keys
+    def __init__(self, source, *args, **kwargs):
+        self.source = source
         super().__init__(*args, **kwargs)
 
     def value_from_datadict(self, data, files, name):
-        getter = operator.itemgetter(*self.keys)
+        getter = operator.itemgetter(*self.source)
         try:
-            val = getter(data)
+            return getter(data)
         except KeyError as e:
-            val = None
-        return val
+            pass
+
+    def value_omitted_from_data(self, data, files, name):
+        getter = operator.itemgetter(*self.source)
+        try:
+            getter(data)
+            return False
+        except KeyError as e:
+            return True

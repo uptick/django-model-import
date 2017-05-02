@@ -26,9 +26,9 @@ pip install django-model-import
 ## Quickstart
 
 ```python
-from djangomodelimport import ModelImportForm, ModelImporter
+import djangomodelimport
 
-class BookImporter(ModelImportForm):
+class BookImporter(djangomodelimport.ImporterModelForm):
     name = forms.CharField()
     author = CachedChoiceField(queryset=Author.objects.all(), to_field='name')
 
@@ -38,7 +38,7 @@ class BookImporter(ModelImportForm):
 with default_storage.open('books.csv', 'rb') as fh:
     data = fh.read().decode("utf-8")
 
-importer = ModelImporter(BookImporter)
+importer = djangomodelimport.ModelImporter(BookImporter)
 preview = importer.process(data, commit=False)
 errors = preview.get_errors()
 
@@ -49,4 +49,28 @@ results = importer.process(data, commit=True)
 for result in results:
     print(result.instance)
 
+```
+
+
+## Composite key lookups
+
+Often a relationship cannot be referenced via a single unique string. For this we can use
+a `CachedChoiceField` with a `CompositeLookupWidget`. The widget looks for the values
+under the `type` and `variant` columns in the source CSV, and does a unique lookup
+with the field names specified in `to_field`, e.g. `queryset.get(type__name=type, name=variant)`.
+
+The results of each `get` are cached internally for the remainder of the import minimising
+any database access.
+
+```python
+class AssetImporter(djangomodelimport.ImporterModelForm):
+    site = djangomodelimport.CachedChoiceField(queryset=Site.objects.active(), to_field='ref')
+    type = djangomodelimport.CachedChoiceField(queryset=AssetType.objects.filter(is_active=True), to_field='name')
+    type_variant = djangomodelimport.CachedChoiceField(
+        queryset=InspectionItemTypeVariant.objects.filter(is_active=True),
+        required=False,
+        widget=djangomodelimport.CompositeLookupWidget(source=('type', 'variant')),
+        to_field=('type__name', 'name'),
+    )
+    contractor = djangomodelimport.CachedChoiceField(queryset=Contractor.objects.active(), to_field='name')
 ```
