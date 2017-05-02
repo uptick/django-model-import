@@ -21,7 +21,8 @@ class CachedChoiceField(forms.Field):
         self.instancecache = cache
 
     def clean(self, value):
-        if value:
+        value_exists = all(value) # this will work for strings, and tuples of values
+        if value_exists:
             cleaned_value = self.instancecache[value]
             if cleaned_value:
                 return cleaned_value

@@ -16,9 +16,6 @@ class CompositeLookupWidget(forms.Widget):
             pass
 
     def value_omitted_from_data(self, data, files, name):
-        getter = operator.itemgetter(*self.source)
-        try:
-            getter(data)
-            return False
-        except KeyError as e:
-            return True
+        # if any of the fields are blank or do not appear in the lookup, assume
+        # they are ommitted from the dataset
+        return not all([data.get(source_field, '') for source_field in self.source])
