@@ -12,12 +12,6 @@ class ModelImporter:
         self.modelimportform = modelimportform
         self.model = modelimportform.Meta.model
 
-    def parse(self, data):
-        """ Parse the imported data. """
-        dataset = tablib.Dataset()
-        dataset.csv = data
-        return dataset
-
     def get_modelimport_form_class(self, fields):
         """ Return a modelform for use with this data.
 
@@ -31,20 +25,16 @@ class ModelImporter:
             fields=fields,
         )
 
-    def process(self, data, commit=False):
+    def process(self, headers, rows, commit=False):
         # Set up a cache context which will be filled by the Cached fields
         caches = SimpleDictCache()
 
-        # Parse the CSV
-        dataset = self.parse(data)
-
         # Prepare
-        headers = dataset.headers
         ModelImportForm = self.get_modelimport_form_class(fields=headers)
         importresult = ImportResultSet(import_headers=headers)
 
         # Start processing
-        for i, row in enumerate(dataset.dict, start=1):
+        for i, row in enumerate(rows, start=1):
             instance = None
             errors = []
 

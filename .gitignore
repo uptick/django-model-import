@@ -12,3 +12,5 @@ db.sqlite3
 environ/
 examples/example_site/env
 **.pem
+src/
+
