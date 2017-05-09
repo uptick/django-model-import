@@ -6,11 +6,11 @@ from .caches import SimpleDictCache
 
 class ModelImporter:
     """ A base class which parses and processes a CSV import, and handles the priming of any required caches. """
-    def __init__(self, modelimportform):
+    def __init__(self, modelimportformclass):
         self.instances = []
         self.errors = []
-        self.modelimportform = modelimportform
-        self.model = modelimportform.Meta.model
+        self.modelimportformclass = modelimportformclass
+        self.model = modelimportformclass.Meta.model
 
     def get_modelimport_form_class(self, fields):
         """ Return a modelform for use with this data.
@@ -19,9 +19,13 @@ class ModelImporter:
         otherwise the absence of a value can be taken as false for boolean fields,
         where as we want the model's default value to kick in.
         """
+        # Get the intersection of the available fields from the importer, and the fields provided
+        fields = set(self.modelimportformclass.Meta.fields) & set(fields)
+
+        # Use a modelform factory to create a modelform class with only those fields
         return modelform_factory(
             self.model,
-            form=self.modelimportform,
+            form=self.modelimportformclass,
             fields=fields,
         )
 
