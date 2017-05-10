@@ -1,4 +1,3 @@
-import tablib
 from django.forms import modelform_factory
 
 from .caches import SimpleDictCache

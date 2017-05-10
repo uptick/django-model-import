@@ -1,6 +1,7 @@
 from dateutil import parser
+
 from django import forms
-from django.forms.utils import from_current_timezone, to_current_timezone
+from django.forms.utils import from_current_timezone
 
 
 class CachedChoiceField(forms.Field):
@@ -24,7 +25,7 @@ class CachedChoiceField(forms.Field):
 
     def clean(self, value):
         # Fast fail if no value provided
-        value_exists = value and all(value) # this will work for strings, and tuples of values
+        value_exists = value and all(value)  # this will work for strings, and tuples of values
         if not value_exists:
             return None
 
