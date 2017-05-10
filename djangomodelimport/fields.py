@@ -1,4 +1,6 @@
+from dateutil import parser
 from django import forms
+from django.forms.utils import from_current_timezone, to_current_timezone
 
 
 class CachedChoiceField(forms.Field):
@@ -38,3 +40,15 @@ class PreloadedChoiceField(forms.Field):
     """
     def clean(self, value):
         raise NotImplemented
+
+
+class DateTimeParserField(forms.DateTimeField):
+    """ A DateTime parser field that does it's best effort to understand. """
+    def to_python(self, value):
+        value = value.strip()
+        try:
+            result = parser.parse(value)
+        except (TypeError, ValueError, OverflowError):
+            raise forms.ValidationError(self.error_messages['invalid'], code='invalid')
+
+        return from_current_timezone(result)
