@@ -26,10 +26,10 @@ class TablibCSVImportParser(ImportParser):
         return (dataset.headers, dataset.dict)
 
 
-class TablibXSLXImportParser(ImportParser):
+class TablibXLSXImportParser(ImportParser):
     def parse(self, data):
         # @todo work with soft_headings to map e.g. "Active" to "is_active"
         # on the modelvalidator
         dataset = tablib.Dataset()
-        dataset.xslx = data
+        dataset.xlsx = data
         return (dataset.headers, dataset.dict)
