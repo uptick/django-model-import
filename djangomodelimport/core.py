@@ -12,6 +12,12 @@ class ModelImporter:
         self.modelimportformclass = modelimportformclass
         self.model = modelimportformclass.Meta.model
 
+    def get_valid_fields(self, headers):
+        """ Return a list of valid fields for this importer, in the order they
+        appear in the input file.
+        """
+        return [field for field in headers if field in self.modelimportformclass.Meta.fields]
+
     def get_modelimport_form_class(self, fields):
         """ Return a modelform for use with this data.
 
@@ -19,14 +25,10 @@ class ModelImporter:
         otherwise the absence of a value can be taken as false for boolean fields,
         where as we want the model's default value to kick in.
         """
-        # Get the intersection of the available fields from the importer, and the fields provided
-        fields = set(self.modelimportformclass.Meta.fields) & set(fields)
-
-        # Use a modelform factory to create a modelform class with only those fields
         return modelform_factory(
             self.model,
             form=self.modelimportformclass,
-            fields=fields,
+            fields=self.get_valid_fields(fields),
         )
 
     def process(self, headers, rows, commit=False):
@@ -34,8 +36,9 @@ class ModelImporter:
         caches = SimpleDictCache()
 
         # Prepare
-        ModelImportForm = self.get_modelimport_form_class(fields=headers)
-        importresult = ImportResultSet(import_headers=headers)
+        valid_fields = self.get_valid_fields(headers)
+        ModelImportForm = self.get_modelimport_form_class(fields=valid_fields)
+        importresult = ImportResultSet(import_headers=valid_fields)
 
         # Start processing
         for i, row in enumerate(rows, start=1):
