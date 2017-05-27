@@ -1,3 +1,4 @@
+from django.db.models.fields import NOT_PROVIDED
 from django.forms import modelform_factory
 
 from .caches import SimpleDictCache
@@ -16,6 +17,18 @@ class ModelImporter:
         appear in the input file.
         """
         return [field for field in headers if field in self.modelimportformclass.Meta.fields]
+
+    def get_required_fields(self):
+        fields = self.model._meta.get_fields()
+        required_fields = []
+
+        # Required means `blank` is False
+        for f in fields:
+            # Note - if the field doesn't have a `blank` attribute it is probably
+            # a ManyToOne relation (reverse foreign key), which you probably want to ignore.
+            if hasattr(f, 'blank') and f.blank is False and f.default is NOT_PROVIDED:
+                required_fields.append(f.name)
+        return required_fields
 
     def get_modelimport_form_class(self, fields):
         """ Return a modelform for use with this data.
@@ -36,30 +49,34 @@ class ModelImporter:
 
         # Prepare
         valid_fields = self.get_valid_fields(headers)
-        ModelImportForm = self.get_modelimport_form_class(fields=valid_fields)
+        form_fields = set(valid_fields) | set(self.get_required_fields())
+        ModelImportForm = self.get_modelimport_form_class(fields=form_fields)
         importresult = ImportResultSet(import_headers=valid_fields)
-
         # Start processing
         for i, row in enumerate(rows, start=1):
-            instance = None
             errors = []
+            instance = None
+            created = row.get('id', '') == ''
 
-            form = ModelImportForm(row, caches)
-            if form.is_valid():
-                instance = form.save(commit=commit)
-            else:
-                errors = form.errors.items()
+            if not created:
+                try:
+                    instance = self.model.objects.get(id=row['id'])
+                except self.model.DoesNotExist:
+                    errors = [('', 'No %s with id %s' % (self.model._meta.verbose_name.title(), row['id']))]
 
-            importresult.append(i, row, errors, instance)
+            if not errors:
+                form = ModelImportForm(row, caches, instance=instance)
+                if form.is_valid():
+                    instance = form.save(commit=commit)
+                else:
+                    errors = list(form.errors.items())
+            importresult.append(i, row, errors, instance, created)
 
         return importresult
 
 
 class ImportResultSet:
     """ Hold all imported results. """
-    import_headers = None
-    results = None
-
     def __init__(self, import_headers):
         self.results = []
         self.import_headers = import_headers
@@ -67,9 +84,9 @@ class ImportResultSet:
     def __str__(self):
         return '{} {}'.format(self.import_headers, self.results)
 
-    def append(self, index, row, errors, instance):
+    def append(self, index, row, errors, instance, created):
         self.results.append(
-            ImportResultRow(self, index, row, errors, instance)
+            ImportResultRow(self, index, row, errors, instance, created)
         )
 
     def get_import_headers(self):
@@ -84,18 +101,13 @@ class ImportResultSet:
 
 class ImportResultRow:
     """ Hold the result of an imported row. """
-    resultset = None
-    linenumber = None
-    row = None
-    errors = None
-    instance = None
-
-    def __init__(self, resultset, linenumber, row, errors, instance):
+    def __init__(self, resultset, linenumber, row, errors, instance, created):
         self.resultset = resultset
         self.linenumber = linenumber
         self.row = row
         self.errors = errors
         self.instance = instance
+        self.created = created
 
     def __str__(self):
         return '{} {}'.format(self.linenumber, self.row)
