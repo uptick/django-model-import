@@ -24,6 +24,7 @@ class CachedChoiceField(forms.Field):
         self.instancecache = cache
 
     def clean(self, value):
+        value = super().clean(value)
         # Fast fail if no value provided
         value_exists = value and all(value)  # this will work for strings, and tuples of values
         if not value_exists:
@@ -32,7 +33,7 @@ class CachedChoiceField(forms.Field):
         # Try and get the value from the loader
         try:
             cleaned_value = self.instancecache[value]
-        except Exception as e:
+        except KeyError as e:
             raise forms.ValidationError(
                 "Unable to find object matching {}, {}".format(value, e)
             )
