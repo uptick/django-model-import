@@ -4,6 +4,35 @@ from django import forms
 from django.forms.utils import from_current_timezone
 
 
+class OneToOneField(forms.Field):
+    """ Will create the related object if it does not yet exist. """
+    instancecache = None
+
+    def __init__(self, queryset, to_field=None, *args, **kwargs):
+        self.queryset = queryset
+        self.to_field = to_field
+        return super().__init__(*args, **kwargs)
+
+    def clean(self, value):
+        value = super().clean(value)
+        # Fast fail if no value provided
+        value_exists = value and all(value)  # this will work for strings, and tuples of values
+        if not value_exists:
+            return None
+
+        # Get or create the FK. Note that this will be running inside a transaction, which will
+        # revert the creation in cases where commit = False.
+        params = {self.to_field: value}
+        model = self.queryset.model
+        try:
+            cleaned_value, _ = model.objects.get_or_create(**params)
+        except model.MultipleObjectsReturned:
+            raise
+
+        # Return it
+        return cleaned_value
+
+
 class CachedChoiceField(forms.Field):
     """ Use a CachedChoiceField when you have a large table of choices, but
     expect the number of different values that occur to be relatively small.
@@ -11,8 +40,6 @@ class CachedChoiceField(forms.Field):
     If you expect a larger number of different values, you might want to use a
     PreloadedChoiceField.
     """
-    queryset = None
-    to_field = None
     instancecache = None
 
     def __init__(self, queryset, to_field=None, *args, **kwargs):

@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models.fields import NOT_PROVIDED
 from django.forms import modelform_factory
 
@@ -43,6 +44,7 @@ class ModelImporter:
             fields=self.get_valid_fields(fields),
         )
 
+    @transaction.atomic
     def process(self, headers, rows, commit=False):
         # Set up a cache context which will be filled by the Cached fields
         caches = SimpleDictCache()
@@ -52,6 +54,9 @@ class ModelImporter:
         form_fields = set(valid_fields) | set(self.get_required_fields())
         ModelImportForm = self.get_modelimport_form_class(fields=form_fields)
         importresult = ImportResultSet(import_headers=valid_fields)
+
+        sid = transaction.savepoint()
+
         # Start processing
         for i, row in enumerate(rows, start=1):
             errors = []
@@ -71,6 +76,11 @@ class ModelImporter:
                 else:
                     errors = list(form.errors.items())
             importresult.append(i, row, errors, instance, created)
+
+        if commit:
+            transaction.savepoint_commit(sid)
+        else:
+            transaction.savepoint_rollback(sid)
 
         return importresult
 
