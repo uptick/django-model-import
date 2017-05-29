@@ -31,5 +31,9 @@ class TablibXLSXImportParser(ImportParser):
         # @todo work with soft_headings to map e.g. "Active" to "is_active"
         # on the modelvalidator
         dataset = tablib.Dataset()
-        dataset.xlsx = data
+        # TODO: This does not currently work, as dataset.xlsx cannot be set.
+        # http://docs.python-tablib.org/en/latest/api/#tablib.Dataset.xlsx
+        # We can wait for it to be supported, or in the meantime, use this converter:
+        # https://github.com/dilshod/xlsx2csv
+        dataset.xlsx = data  # CANNOT SET
         return (dataset.headers, dataset.dict)
