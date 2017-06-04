@@ -11,6 +11,7 @@ class ImporterModelForm(forms.ModelForm):
     def __init__(self, data, caches, *args, **kwargs):
         super().__init__(data, *args, **kwargs)
 
+        # For each CachedInstanceLoader, prime the cache
         for field, fieldinstance in self.fields.items():
             if isinstance(fieldinstance, CachedChoiceField):
                 if field not in caches:

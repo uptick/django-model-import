@@ -12,7 +12,7 @@ class CompositeLookupWidget(forms.Widget):
         getter = operator.itemgetter(*self.source)
         try:
             return getter(data)
-        except KeyError as e:
+        except KeyError:
             pass
 
     def value_omitted_from_data(self, data, files, name):
