@@ -1,6 +1,3 @@
-from django import forms
-
-
 class CachedInstanceLoader(dict):
     """ A clever cache that queries the database for any missing objects.
 
@@ -23,8 +20,8 @@ class CachedInstanceLoader(dict):
             self[value] = inst = self.queryset.get(**params)
         except self.model.DoesNotExist as e:
             self[value] = inst = None  # Further warnings will be surpressed
-            raise forms.ValidationError('{} {}'.format(str(e), params))
+            raise
         except self.model.MultipleObjectsReturned as e:
             self[value] = inst = None  # Further warnings will be surpressed
-            raise forms.ValidationError('{} {}'.format(str(e), params))
+            raise
         return inst
