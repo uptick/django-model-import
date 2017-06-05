@@ -9,7 +9,7 @@ class CachedInstanceLoader(dict):
     """
     def __init__(self, queryset, to_field, *args, **kwargs):
         self.queryset = queryset
-        self.model = self.queryset.model
+        self.model = queryset.model
         self.to_field = to_field
         self.multifield = isinstance(to_field, list) or isinstance(to_field, tuple)
 

@@ -10,6 +10,7 @@ class OneToOneField(forms.Field):
 
     def __init__(self, queryset, to_field=None, *args, **kwargs):
         self.queryset = queryset
+        self.model = queryset.model
         self.to_field = to_field
         return super().__init__(*args, **kwargs)
 
@@ -23,10 +24,9 @@ class OneToOneField(forms.Field):
         # Get or create the FK. Note that this will be running inside a transaction, which will
         # revert the creation in cases where commit = False.
         params = {self.to_field: value}
-        model = self.queryset.model
         try:
-            cleaned_value, _ = model.objects.get_or_create(**params)
-        except model.MultipleObjectsReturned:
+            cleaned_value, _ = self.model.objects.get_or_create(**params)
+        except self.model.MultipleObjectsReturned:
             raise
 
         # Return it
@@ -44,6 +44,7 @@ class CachedChoiceField(forms.Field):
 
     def __init__(self, queryset, to_field=None, *args, **kwargs):
         self.queryset = queryset
+        self.model = queryset.model
         self.to_field = to_field
         return super().__init__(*args, **kwargs)
 
@@ -60,7 +61,7 @@ class CachedChoiceField(forms.Field):
         # Try and get the value from the loader
         try:
             cleaned_value = self.instancecache[value]
-        except KeyError as e:
+        except (self.model.DoesNotExist, self.model.MultipleObjectsReturned) as e:
             raise forms.ValidationError(
                 "Unable to find object matching {}, {}".format(value, e)
             )
