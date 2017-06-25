@@ -67,7 +67,7 @@ class ModelImporter:
                 try:
                     instance = self.model.objects.get(id=row['id'])
                 except self.model.DoesNotExist:
-                    errors = [('', 'No %s with id %s' % (self.model._meta.verbose_name.title(), row['id']))]
+                    errors = [('', 'No %s with id %s.' % (self.model._meta.verbose_name.title(), row['id']))]
 
             if not errors:
                 form = ModelImportForm(row, caches, instance=instance)

@@ -61,9 +61,13 @@ class CachedChoiceField(forms.Field):
         # Try and get the value from the loader
         try:
             cleaned_value = self.instancecache[value]
-        except (self.model.DoesNotExist, self.model.MultipleObjectsReturned) as e:
+        except self.model.DoesNotExist:
             raise forms.ValidationError(
-                "Unable to find object matching {}, {}".format(value, e)
+                "No %s matching '%s'." % (self.model._meta.verbose_name.title(), value)
+            )
+        except self.model.MultipleObjectsReturned:
+            raise forms.ValidationError(
+                "Multiple %s matching '%s'. Expected just one." % (self.model._meta.verbose_name_plural.title(), value)
             )
 
         # Return it
@@ -72,7 +76,7 @@ class CachedChoiceField(forms.Field):
 
         # Raise
         raise forms.ValidationError(
-            "Could not find object matching {}".format(value)
+            "No %s matching '%s'." % (self.model._meta.verbose_name.title(), value)
         )
 
 
