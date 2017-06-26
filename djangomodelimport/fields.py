@@ -8,6 +8,8 @@ class FlatRelatedField(forms.Field):
     """ Will create the related object if it does not yet exist. """
     def __init__(self, queryset, fields=[], *args, **kwargs):
         self.queryset = queryset
+        # TODO: If lookup key is provided, allow using it to look up value instead of only
+        # retrieving it off the object itself.
         self.model = queryset.model
         self.fields = fields
         return super().__init__(*args, **kwargs)

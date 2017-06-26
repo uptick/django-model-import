@@ -62,10 +62,10 @@ class ImporterModelForm(forms.ModelForm):
             to_fields = dict(self.fields[field].fields)
             mapped_values = dict((to_fields[k], v) for k, v in values.items())
             # Get or create the related instance.
-            instance = getattr(self.instance, field)
-            if instance is None:
+            if getattr(self.instance, field + '_id') is None:
                 instance = self.fields[field].model(**mapped_values)
             else:
+                instance = getattr(self.instance, field)
                 for attr, value in mapped_values.items():
                     setattr(instance, attr, value)
             instance.save()
