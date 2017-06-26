@@ -4,33 +4,13 @@ from django import forms
 from django.forms.utils import from_current_timezone
 
 
-class OneToOneField(forms.Field):
+class FlatRelatedField(forms.Field):
     """ Will create the related object if it does not yet exist. """
-    instancecache = None
-
-    def __init__(self, queryset, to_field=None, *args, **kwargs):
+    def __init__(self, queryset, fields=[], *args, **kwargs):
         self.queryset = queryset
         self.model = queryset.model
-        self.to_field = to_field
+        self.fields = fields
         return super().__init__(*args, **kwargs)
-
-    def clean(self, value):
-        value = super().clean(value)
-        # Fast fail if no value provided
-        value_exists = value and all(value)  # this will work for strings, and tuples of values
-        if not value_exists:
-            return None
-
-        # Get or create the FK. Note that this will be running inside a transaction, which will
-        # revert the creation in cases where commit = False.
-        params = {self.to_field: value}
-        try:
-            cleaned_value, _ = self.model.objects.get_or_create(**params)
-        except self.model.MultipleObjectsReturned:
-            raise
-
-        # Return it
-        return cleaned_value
 
 
 class CachedChoiceField(forms.Field):
