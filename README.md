@@ -28,7 +28,7 @@ pip install django-model-import
 ```python
 import djangomodelimport
 
-class BookImporter(djangomodelimport.ImporterModelForm):
+class BookImporter(ImporterModelForm):
     name = forms.CharField()
     author = CachedChoiceField(queryset=Author.objects.all(), to_field='name')
 
@@ -63,7 +63,7 @@ The results of each `get` are cached internally for the remainder of the import 
 any database access.
 
 ```python
-class AssetImporter(djangomodelimport.ImporterModelForm):
+class AssetImporter(ImporterModelForm):
     site = djangomodelimport.CachedChoiceField(queryset=Site.objects.active(), to_field='ref')
     type = djangomodelimport.CachedChoiceField(queryset=AssetType.objects.filter(is_active=True), to_field='name')
     type_variant = djangomodelimport.CachedChoiceField(
@@ -73,4 +73,38 @@ class AssetImporter(djangomodelimport.ImporterModelForm):
         to_field=('type__name', 'name'),
     )
     contractor = djangomodelimport.CachedChoiceField(queryset=Contractor.objects.active(), to_field='name')
+```
+
+
+## Flat related fields
+
+Often you'll have a OneToOneField or just a ForeignKey to another model, but you want to be able to
+create/update that other model via this one. You can flatten all of the related model's fields onto
+this importer using `FlatRelatedField`.
+
+```python
+class ClientImporter(ImporterModelForm):
+    primary_contact = FlatRelatedField(
+        queryset=ContactDetails.objects.all(),
+        fields=[
+            ('contact_name', 'name'),
+            ('email', 'email'),
+            ('email_cc', 'email_cc'),
+            ('mobile', 'mobile'),
+            ('phone_bh', 'phone_bh'),
+            ('phone_ah', 'phone_ah'),
+            ('fax', 'fax'),
+        ],
+    )
+
+    class Meta:
+        model = Client
+        fields = (
+            'name',
+            'ref',
+            'is_active',
+            'account',
+
+            'primary_contact',
+        )
 ```
