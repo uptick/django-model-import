@@ -22,8 +22,31 @@ class ImporterModelForm(forms.ModelForm):
                 fieldinstance.set_cache(caches[field])
             # For each FlatRelatedField, save a mapping back to the field.
             if isinstance(fieldinstance, FlatRelatedField):
-                for f in fieldinstance.fields:
-                    self.flat_related_mapping[f[0]] = field
+                for f in fieldinstance.fields.keys():
+                    self.flat_related_mapping[f] = field
+
+        # Tinker with data to combine flat fields into related objects.
+        flat_related = defaultdict(dict)
+        new_data = self.data.copy()
+        for field, value in self.data.items():
+            if field in self.flat_related_mapping:
+                flat_related[self.flat_related_mapping[field]][field] = value
+                del new_data[field]
+
+        self.flat_data = self.data
+        self.data = new_data
+
+        for field, values in flat_related.items():
+            mapped_values = dict((self.fields[field].fields[k]['to_field'], v) for k, v in values.items())
+            # Get or create the related instance.
+            if getattr(self.instance, field + '_id') is None:
+                instance = self.fields[field].model(**mapped_values)
+            else:
+                instance = getattr(self.instance, field)
+                for attr, value in mapped_values.items():
+                    setattr(instance, attr, value)
+            instance.save()
+            self.data[field] = instance
 
     def validate_unique(self):
         pass
@@ -39,36 +62,32 @@ class ImporterModelForm(forms.ModelForm):
 
         return exclude
 
-    def get_headers(self):
+    def get_headers(self, given_headers):
         headers = []
         for field, fieldinstance in self.fields.items():
             if isinstance(fieldinstance, FlatRelatedField):
-                headers.extend(f[0] for f in fieldinstance.fields)
+                headers.extend(f for f in fieldinstance.fields.keys() if f in given_headers)
             else:
                 headers.append(field)
         return headers
 
-    def is_valid(self):
-        # Tinker with data to combine flat fields back into related objects.
-        flat_related = defaultdict(dict)
-        new_data = self.data.copy()
-        for field, value in self.data.items():
-            if field in self.flat_related_mapping:
-                flat_related[self.flat_related_mapping[field]][field] = value
-                del new_data[field]
-        self.data = new_data
-
-        for field, values in flat_related.items():
-            to_fields = dict(self.fields[field].fields)
-            mapped_values = dict((to_fields[k], v) for k, v in values.items())
-            # Get or create the related instance.
-            if getattr(self.instance, field + '_id') is None:
-                instance = self.fields[field].model(**mapped_values)
+    def get_instance_values(self, instance, headers):
+        instance_values = []
+        for header in headers:
+            if header in self.flat_related_mapping:
+                rel_field_name = self.flat_related_mapping[header]
+                rel = getattr(instance, rel_field_name)
+                instance_values.append(getattr(rel, self.fields[rel_field_name].fields[header]['to_field']))
             else:
-                instance = getattr(self.instance, field)
-                for attr, value in mapped_values.items():
-                    setattr(instance, attr, value)
-            instance.save()
-            self.data[field] = instance
+                instance_values.append(getattr(instance, header))
+        return instance_values
 
-        return super().is_valid()
+    # TODO:
+    # def full_clean(self):
+    #     """ Validate that required fields in FlatRelated fields have been provided. """
+    #     super().full_clean()
+    #     for field, fieldinstance in self.fields.items():
+    #         if isinstance(fieldinstance, FlatRelatedField):
+    #             for f in fieldinstance.fields:
+    #                 import pdb; pdb.set_trace()
+    #                 pass

@@ -23,12 +23,14 @@ class ModelImporter:
         fields = self.model._meta.get_fields()
         required_fields = []
 
-        # Required means `blank` is False
+        # Required means `blank` is False and `editable` is True.
         for f in fields:
             # Note - if the field doesn't have a `blank` attribute it is probably
             # a ManyToOne relation (reverse foreign key), which you probably want to ignore.
-            if hasattr(f, 'blank') and f.blank is False and f.default is NOT_PROVIDED:
-                required_fields.append(f.name)
+            if getattr(f, 'blank', True) is False and getattr(f, 'editable', True) is True and f.default is NOT_PROVIDED:
+                # Check at form level; maybe required=False has been set.
+                if getattr(self.modelimportformclass.base_fields[f.name], 'required', True) is not False:
+                    required_fields.append(f.name)
         return required_fields
 
     def get_modelimport_form_class(self, fields):
@@ -41,7 +43,7 @@ class ModelImporter:
         return modelform_factory(
             self.model,
             form=self.modelimportformclass,
-            fields=self.get_valid_fields(fields),
+            fields=fields,
         )
 
     @transaction.atomic
@@ -51,9 +53,11 @@ class ModelImporter:
 
         # Prepare
         valid_fields = self.get_valid_fields(headers)
-        form_fields = set(valid_fields) | set(self.get_required_fields())
+        # Combine valid & required fields; preserving order of valid fields.
+        form_fields = valid_fields + list(set(self.get_required_fields()) - set(valid_fields))
         ModelImportForm = self.get_modelimport_form_class(fields=form_fields)
-        importresult = ImportResultSet(import_headers=valid_fields)
+        header_form = ModelImportForm(data={}, caches={})
+        importresult = ImportResultSet(headers=headers, header_form=header_form)
 
         sid = transaction.savepoint()
 
@@ -71,6 +75,7 @@ class ModelImporter:
 
             if not errors:
                 form = ModelImportForm(row, caches, instance=instance)
+                import pdb; pdb.set_trace()
                 if form.is_valid():
                     instance = form.save(commit=commit)
                 else:
@@ -82,17 +87,20 @@ class ModelImporter:
         else:
             transaction.savepoint_rollback(sid)
 
+        # import pdb; pdb.set_trace()
+
         return importresult
 
 
 class ImportResultSet:
     """ Hold all imported results. """
-    def __init__(self, import_headers):
+    def __init__(self, headers, header_form):
         self.results = []
-        self.import_headers = import_headers
+        self.headers = headers
+        self.header_form = header_form
 
     def __str__(self):
-        return '{} {}'.format(self.import_headers, self.results)
+        return '{} {}'.format(self.get_import_headers(), self.results)
 
     def append(self, index, row, errors, instance, created):
         self.results.append(
@@ -100,7 +108,7 @@ class ImportResultSet:
         )
 
     def get_import_headers(self):
-        return self.import_headers
+        return self.header_form.get_headers(self.headers)
 
     def get_results(self):
         return self.results
@@ -123,7 +131,7 @@ class ImportResultRow:
         return '{} {}'.format(self.linenumber, self.row)
 
     def get_instance_values(self):
-        return [getattr(self.instance, header) for header in self.resultset.import_headers]
+        return self.resultset.header_form.get_instance_values(self.instance, self.resultset.get_import_headers())
 
     def is_valid(self):
         return len(self.errors) == 0

@@ -12,7 +12,8 @@ class FlatRelatedField(forms.Field):
         # retrieving it off the object itself.
         self.model = queryset.model
         self.fields = fields
-        return super().__init__(*args, **kwargs)
+        # Required is False, because this check gets passed down to the fields on the related instance.
+        return super().__init__(required=False, *args, **kwargs)
 
 
 class CachedChoiceField(forms.Field):
