@@ -61,11 +61,11 @@ class ImporterModelForm(forms.ModelForm):
 
         return exclude
 
-    def get_headers(self, given_headers):
+    def get_headers(self, given_headers=None):
         headers = []
         for field, fieldinstance in self.fields.items():
             if isinstance(fieldinstance, FlatRelatedField):
-                headers.extend(f for f in fieldinstance.fields.keys() if f in given_headers)
+                headers.extend(f for f in fieldinstance.fields.keys() if given_headers is None or f in given_headers)
             else:
                 headers.append(field)
         return headers
