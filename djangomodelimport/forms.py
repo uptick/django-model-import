@@ -13,6 +13,7 @@ class ImporterModelForm(forms.ModelForm):
     def __init__(self, data, caches, *args, **kwargs):
         super().__init__(data, *args, **kwargs)
         self.flat_related_mapping = {}
+        flat_related = {}
 
         for field, fieldinstance in self.fields.items():
             # For each CachedInstanceLoader, prime the cache.
@@ -22,11 +23,11 @@ class ImporterModelForm(forms.ModelForm):
                 fieldinstance.set_cache(caches[field])
             # For each FlatRelatedField, save a mapping back to the field.
             if isinstance(fieldinstance, FlatRelatedField):
+                flat_related[field] = {}
                 for f in fieldinstance.fields.keys():
                     self.flat_related_mapping[f] = field
 
         # Tinker with data to combine flat fields into related objects.
-        flat_related = defaultdict(dict)
         new_data = self.data.copy()
         for field, value in self.data.items():
             if field in self.flat_related_mapping:

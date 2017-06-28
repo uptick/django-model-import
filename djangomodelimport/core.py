@@ -28,9 +28,7 @@ class ModelImporter:
             # Note - if the field doesn't have a `blank` attribute it is probably
             # a ManyToOne relation (reverse foreign key), which you probably want to ignore.
             if getattr(f, 'blank', True) is False and getattr(f, 'editable', True) is True and f.default is NOT_PROVIDED:
-                # Check at form level; maybe required=False has been set.
-                if getattr(self.modelimportformclass.base_fields[f.name], 'required', True) is not False:
-                    required_fields.append(f.name)
+                required_fields.append(f.name)
         return required_fields
 
     def get_modelimport_form_class(self, fields):
@@ -75,10 +73,10 @@ class ModelImporter:
 
             if not errors:
                 form = ModelImportForm(row, caches, instance=instance)
-                import pdb; pdb.set_trace()
                 if form.is_valid():
                     instance = form.save(commit=commit)
                 else:
+                    # TODO: Filter out errors associated with FlatRelatedField
                     errors = list(form.errors.items())
             importresult.append(i, row, errors, instance, created)
 
