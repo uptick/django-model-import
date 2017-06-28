@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from django import forms
 
 from .fields import CachedChoiceField, FlatRelatedField

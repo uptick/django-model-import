@@ -85,8 +85,6 @@ class ModelImporter:
         else:
             transaction.savepoint_rollback(sid)
 
-        # import pdb; pdb.set_trace()
-
         return importresult
 
 
