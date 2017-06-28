@@ -86,15 +86,15 @@ this importer using `FlatRelatedField`.
 class ClientImporter(ImporterModelForm):
     primary_contact = FlatRelatedField(
         queryset=ContactDetails.objects.all(),
-        fields=[
-            ('contact_name', 'name'),
-            ('email', 'email'),
-            ('email_cc', 'email_cc'),
-            ('mobile', 'mobile'),
-            ('phone_bh', 'phone_bh'),
-            ('phone_ah', 'phone_ah'),
-            ('fax', 'fax'),
-        ],
+        fields={
+            'contact_name': {'to_field': 'name', 'required': True},
+            'email': {'to_field': 'email'},
+            'email_cc': {'to_field': 'email_cc'},
+            'mobile': {'to_field': 'mobile'},
+            'phone_bh': {'to_field': 'phone_bh'},
+            'phone_ah': {'to_field': 'phone_ah'},
+            'fax': {'to_field': 'fax'},
+        },
     )
 
     class Meta:
