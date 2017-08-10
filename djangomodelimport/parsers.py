@@ -36,7 +36,7 @@ class TablibCSVImportParser(ImportParser):
                 for renameto in importer_softheadings:  # new column name
                     for renamefrom in importer_softheadings[renameto]:  # old column name
                         for idx, header in enumerate(dataset.headers):  # replace it in headers if found
-                            if header == renamefrom:
+                            if header.strip() == renamefrom.strip():
                                 dataset.headers[idx] = renameto
 
         return (dataset.headers, dataset.dict)
