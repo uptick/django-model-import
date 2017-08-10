@@ -19,10 +19,26 @@ class ImportParser:
 
 class TablibCSVImportParser(ImportParser):
     def parse(self, data):
-        # @todo work with soft_headings to map e.g. "Active" to "is_active"
-        # on the modelvalidator
         dataset = tablib.Dataset()
         dataset.csv = data
+
+        if hasattr(self.modelvalidator, 'ImporterMeta'):
+            # has additional importer config defined
+            if hasattr(self.modelvalidator.ImporterMeta, 'soft_headings'):
+                importer_softheadings = self.modelvalidator.ImporterMeta.soft_headings
+
+                # rename headers according to a soft_headings mapping dict which renames
+                # columns to a consistent value
+                # header mapping looks like this
+                # soft_headings = {
+                #   'colnewname': ['fromname1', 'fromname2']
+                # }
+                for renameto in importer_softheadings:  # new column name
+                    for renamefrom in importer_softheadings[renameto]:  # old column name
+                        for idx, header in enumerate(dataset.headers):  # replace it in headers if found
+                            if header == renamefrom:
+                                dataset.headers[idx] = renameto
+
         return (dataset.headers, dataset.dict)
 
 
