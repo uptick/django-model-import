@@ -49,11 +49,17 @@ class ModelImporter:
         # Set up a cache context which will be filled by the Cached fields
         caches = SimpleDictCache()
 
-        # Prepare
         valid_fields = self.get_valid_fields(headers)
+
+        # Create a Form (using modelform_factory) for rows where we are doing an UPDATE
+        ModelUpdateForm = self.get_modelimport_form_class(fields=valid_fields)
+
+        # Create a Form for rows where doing an INSERT, make sure to include the required fields
         # Combine valid & required fields; preserving order of valid fields.
         form_fields = valid_fields + list(set(self.get_required_fields()) - set(valid_fields))
         ModelImportForm = self.get_modelimport_form_class(fields=form_fields)
+
+        # Create form for things?
         header_form = ModelImportForm(data={}, caches={})
         importresult = ImportResultSet(headers=headers, header_form=header_form)
 
@@ -63,7 +69,8 @@ class ModelImporter:
         for i, row in enumerate(rows, start=1):
             errors = []
             instance = None
-            created = row.get('id', '') == ''
+            created = row.get('id', '') == ''  # If ID is blank we are creating a new row, otherwise we are updating
+            import_form_class = ModelImportForm if created else ModelUpdateForm
 
             if not created:
                 try:
@@ -72,7 +79,7 @@ class ModelImporter:
                     errors = [('', 'No %s with id %s.' % (self.model._meta.verbose_name.title(), row['id']))]
 
             if not errors:
-                form = ModelImportForm(row, caches, instance=instance)
+                form = import_form_class(row, caches, instance=instance)
                 if form.is_valid():
                     instance = form.save(commit=commit)
                 else:
