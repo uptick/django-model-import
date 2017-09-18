@@ -9,7 +9,7 @@ with open('./djangomodelimport/__init__.py') as f:
 
 try:
     setup(
-        name='djangomodelimport',
+        name='django-model-import',
         packages=['djangomodelimport'],
         version=__version__,
         description="Fast CSV imports using django model forms.",
