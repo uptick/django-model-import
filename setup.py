@@ -1,40 +1,38 @@
 import os
-import sys
+import re
 
-from setuptools import find_packages, setup
+from setuptools import setup
 
-version = '0.0.1'
+# Get version this way, so that we don't load any modules.
+with open('./djangomodelimport/__init__.py') as f:
+    exec(re.search(r'VERSION = .*', f.read(), re.DOTALL).group())
 
-setup(
-    name='djangomodelimport',
-    version=version,
-    author='Aidan Lister',
-    author_email='aidan@aidanlister.com',
-    maintainer='Aidan Lister',
-    maintainer_email='aidan@aidanlister.com',
-    url='https://github.com/ABASystems/python-fuku',
-    description='Fast CSV imports using django model forms.',
-    long_description=open(os.path.join(os.path.dirname(__file__), 'README.md')).read(),
-    classifiers = [
-        'Development Status :: 3 - Alpha',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
-        'Natural Language :: English',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5'
-    ],
-    license='BSD',
-    packages=find_packages(),
-    include_package_data=True,
-    package_data={'': ['*.txt', '*.js', '*.html', '*.*']},
-    install_requires=[
-        'setuptools', 'python-dateutil', 'tablib'
-    ],
-    zip_safe=False,
-)
+try:
+    setup(
+        name='djangomodelimport',
+        packages=['djangomodelimport'],
+        version=__version__,
+        description="Fast CSV imports using django model forms.",
+        long_description=open(os.path.join(os.path.dirname(__file__), 'README.md')).read(),
+        license='BSD',
+        author='Uptick',
+        author_email='dev@uptickhq.com',
+        url='https://github.com/ABASystems/python-fuku',
+        keywords=['csv', 'import'],
+        classifiers=[
+            'Development Status :: 3 - Alpha',
+            'Environment :: Web Environment',
+            'Intended Audience :: Developers',
+            'Natural Language :: English',
+            'License :: OSI Approved :: BSD License',
+            'Operating System :: OS Independent',
+            'Programming Language :: Python',
+            'Programming Language :: Python :: 3.6',
+        ],
+        install_requires=[
+            'python-dateutil>=2.6.0',
+            'tablib>=0.11.5',
+        ],
+    )
+except NameError:
+    raise RuntimeError("Unable to determine version.")
