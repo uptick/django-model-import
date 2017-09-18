@@ -17,7 +17,7 @@ try:
         license='BSD',
         author='Uptick',
         author_email='dev@uptickhq.com',
-        url='https://github.com/ABASystems/python-fuku',
+        url='https://github.com/ABASystems/django-model-import',
         keywords=['csv', 'import'],
         classifiers=[
             'Development Status :: 3 - Alpha',
