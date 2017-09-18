@@ -1,5 +1,7 @@
 # django-model-import
 
+[![PyPI version](https://badge.fury.io/py/djangomodelimport.svg)](https://badge.fury.io/py/djangomodelimport)
+
 Django Model Import is a light weight CSV importer built for speed.
 
 It uses a standard Django `ModelForm` to parse each row, giving you a familiar API to work with
