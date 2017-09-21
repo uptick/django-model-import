@@ -74,10 +74,12 @@ class PreloadedChoiceField(forms.Field):
 class DateTimeParserField(forms.DateTimeField):
     """ A DateTime parser field that does it's best effort to understand. """
     def to_python(self, value):
-        value = value.strip()
+        if not value:
+            return None
         try:
+            value = value.strip()
             result = parser.parse(value)
-        except (TypeError, ValueError, OverflowError):
+        except (AttributeError, TypeError, ValueError, OverflowError):
             raise forms.ValidationError(self.error_messages['invalid'], code='invalid')
 
         return from_current_timezone(result)
