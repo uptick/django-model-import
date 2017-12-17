@@ -75,9 +75,11 @@ class DateTimeParserField(forms.DateTimeField):
     """ A DateTime parser field that does it's best effort to understand. """
     def to_python(self, value):
         value = (value or '').strip()
-        try:
-            result = parser.parse(value)
-        except (TypeError, ValueError, OverflowError):
-            raise forms.ValidationError(self.error_messages['invalid'], code='invalid')
+        if value:
+            try:
+                return from_current_timezone(parser.parse(value))
+            except (TypeError, ValueError, OverflowError):
+                raise forms.ValidationError(self.error_messages['invalid'], code='invalid')
 
-        return from_current_timezone(result)
+        else:
+            return None
