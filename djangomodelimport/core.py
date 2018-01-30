@@ -7,11 +7,12 @@ from .caches import SimpleDictCache
 
 class ModelImporter:
     """ A base class which parses and processes a CSV import, and handles the priming of any required caches. """
-    def __init__(self, modelimportformclass):
+    def __init__(self, modelimportformclass, updateable_qs=None):
         self.instances = []
         self.errors = []
         self.modelimportformclass = modelimportformclass
         self.model = modelimportformclass.Meta.model
+        self.qs = updateable_qs if updateable_qs else self.model.objects.all()
 
     def get_valid_fields(self, headers):
         """ Return a list of valid fields for this importer, in the order they
@@ -74,7 +75,7 @@ class ModelImporter:
 
             if not created:
                 try:
-                    instance = self.model.objects.get(id=row['id'])
+                    instance = self.qs.get(id=row['id'])
                 except self.model.DoesNotExist:
                     errors = [('', 'No %s with id %s.' % (self.model._meta.verbose_name.title(), row['id']))]
 
