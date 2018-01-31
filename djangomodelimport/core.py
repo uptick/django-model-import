@@ -77,7 +77,10 @@ class ModelImporter:
                 try:
                     instance = self.qs.get(id=row['id'])
                 except self.model.DoesNotExist:
-                    errors = [('', 'No %s with id %s.' % (self.model._meta.verbose_name.title(), row['id']))]
+                    if self.model.objects.filter(id=row['id']).exists():
+                        errors = [('', '%s %s cannot be updated.' % (self.model._meta.verbose_name.title(), row['id']))]
+                    else:
+                        errors = [('', 'No %s with id %s.' % (self.model._meta.verbose_name.title(), row['id']))]
 
             if not errors:
                 form = import_form_class(row, caches, instance=instance)
