@@ -12,7 +12,7 @@ class ModelImporter:
         self.errors = []
         self.modelimportformclass = modelimportformclass
         self.model = modelimportformclass.Meta.model
-        self.qs = updateable_qs if updateable_qs else self.model.objects.all()
+        self.qs = updateable_qs if updateable_qs is not None else self.model.objects.all()
 
     def get_valid_fields(self, headers):
         """ Return a list of valid fields for this importer, in the order they
