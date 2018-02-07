@@ -68,7 +68,10 @@ class ModelImporter:
             # We only build the update_cache if limit_to_queryset is provided, with the assumption that the dataset
             # is then not too big. This may not be a valid assumption.
             # @todo Could we be smarter about the update cache, e.g. iterate through the source row PKs
-            self.update_cache = {(obj.id, obj) for obj in self.update_queryset} if limit_to_queryset is not None else {}
+            self.update_cache = {}
+            if limit_to_queryset is not None:
+                for obj in self.update_queryset:
+                    self.update_cache[str(obj.id)] = obj
 
         valid_fields = self.get_valid_fields(headers)
 
@@ -107,7 +110,7 @@ class ModelImporter:
             if to_be_updated:
                 try:
                     instance = self.get_for_update(row['id'])
-                except (self.model.DoesNotExist, IndexError):
+                except (self.model.DoesNotExist, KeyError):
                     errors = [('', '%s %s cannot be updated.' % (self.model._meta.verbose_name.title(), row['id']))]
  
             if not errors:
