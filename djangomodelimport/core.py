@@ -78,7 +78,7 @@ class ModelImporter:
         form_fields = valid_fields + list(set(self.get_required_fields()) - set(valid_fields))
         ModelImportForm = self.get_modelimport_form_class(fields=form_fields)
 
-        # Create form for things
+        # Create form to pass context to the ImportResultSet @todo evaluate this
         header_form = ModelImportForm(data={}, caches={})
         importresult = ImportResultSet(headers=headers, header_form=header_form)
 
