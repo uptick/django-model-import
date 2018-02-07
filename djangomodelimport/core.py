@@ -105,7 +105,7 @@ class ModelImporter:
             if to_be_updated:
                 try:
                     instance = self.get_for_update(row['id'])
-                except self.model.DoesNotExist, IndexError:
+                except (self.model.DoesNotExist, IndexError):
                     errors = [('', '%s %s cannot be updated.' % (self.model._meta.verbose_name.title(), row['id']))]
  
             if not errors:
