@@ -65,8 +65,10 @@ class ModelImporter:
         # Set up an "update" cache to preload any objects which might be updated
         if allow_update:
             self.update_queryset = limit_to_queryset if limit_to_queryset is not None else self.model.objects.all()
+            # We only build the update_cache if limit_to_queryset is provided, with the assumption that the dataset
+            # is then not too big. This may not be a valid assumption.
             # @todo Could we be smarter about the update cache, e.g. iterate through the source row PKs
-            self.update_cache = {(obj.id, obj) for obj in self.update_queryset}
+            self.update_cache = {(obj.id, obj) for obj in self.update_queryset} if limit_to_queryset is not None else {}
 
         valid_fields = self.get_valid_fields(headers)
 
