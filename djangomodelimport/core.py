@@ -8,7 +8,7 @@ from .caches import SimpleDictCache
 class ModelImporter:
     """ A base class which parses and processes a CSV import, and handles the priming of any required caches. """
     def __init__(self, modelimportformclass):
-        """ 
+        """
         @param modelimportformclass The ImporterModelForm class (which extends a simple ModelForm)
         """
         self.instances = []
@@ -17,7 +17,7 @@ class ModelImporter:
         self.model = modelimportformclass.Meta.model
         self.update_cache = None
         self.update_queryset = None
-            
+
     def get_for_update(self, pk):
         return self.update_cache[pk] if self.update_cache else self.update_queryset.get(pk=pk)
 
@@ -55,13 +55,13 @@ class ModelImporter:
     @transaction.atomic
     def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None):
         """
-        
+
         @param limit_to_queryset A queryset which limits the instances which can be updated, and creates a cache of the
             updatable records to improve update performance.
         """
         # Set up a cache context which will be filled by the Cached fields
         caches = SimpleDictCache()
-        
+
         # Set up an "update" cache to preload any objects which might be updated
         if allow_update:
             self.update_queryset = limit_to_queryset if limit_to_queryset is not None else self.model.objects.all()
@@ -96,7 +96,7 @@ class ModelImporter:
             to_be_created = row.get('id', '') == ''  # If ID is blank we are creating a new row, otherwise we are updating
             to_be_updated = not to_be_created
             import_form_class = ModelImportForm if to_be_created else ModelUpdateForm
-            
+
             if to_be_created and not allow_insert:
                 errors = [('', 'Creating new rows is not permitted')]
                 importresult.append(i, row, errors, instance, to_be_created)
@@ -106,13 +106,13 @@ class ModelImporter:
                 errors = [('', 'Updating existing rows is not permitted')]
                 importresult.append(i, row, errors, instance, to_be_created)
                 continue
-                
+
             if to_be_updated:
                 try:
                     instance = self.get_for_update(row['id'])
                 except (self.model.DoesNotExist, KeyError):
                     errors = [('', '%s %s cannot be updated.' % (self.model._meta.verbose_name.title(), row['id']))]
- 
+
             if not errors:
                 form = import_form_class(row, caches, instance=instance)
                 if form.is_valid():
@@ -138,7 +138,7 @@ class ImportResultSet:
         self.header_form = header_form
 
     def __str__(self):
-        return '{} {}'.format(self.get_import_headers(), self.results)
+        return '{} {}'.format(self.get_import_headers(), self.get_results())
 
     def append(self, index, row, errors, instance, created):
         self.results.append(

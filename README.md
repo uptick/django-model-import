@@ -30,27 +30,35 @@ pip install django-model-import
 ```python
 import djangomodelimport
 
-class BookImporter(ImporterModelForm):
+class BookImporter(djangomodelimport.ImporterModelForm):
     name = forms.CharField()
     author = CachedChoiceField(queryset=Author.objects.all(), to_field='name')
 
     class Meta:
         model = Book
+        fields = (
+            'name',
+            'author',
+        )
 
 with default_storage.open('books.csv', 'rb') as fh:
     data = fh.read().decode("utf-8")
 
+# Use tablib
+parser = djangomodelimport.TablibCSVImportParser(BookImporter)
+headers, rows = parser.parse(data)
+
+# Process
 importer = djangomodelimport.ModelImporter(BookImporter)
-preview = importer.process(data, commit=False)
+preview = importer.process(headers, rows, commit=False)
 errors = preview.get_errors()
 
 if errors:
     print(errors)
 
-results = importer.process(data, commit=True)
-for result in results:
+importresult = importer.process(headers, rows, commit=True)
+for result in importresult.get_results():
     print(result.instance)
-
 ```
 
 
@@ -110,3 +118,6 @@ class ClientImporter(ImporterModelForm):
             'primary_contact',
         )
 ```
+
+## Tests
+Run tests with `python example/manage.py test testapp`
