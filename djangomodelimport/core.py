@@ -8,10 +8,18 @@ from .caches import SimpleDictCache
 class ModelImporter:
     """ A base class which parses and processes a CSV import, and handles the priming of any required caches. """
     def __init__(self, modelimportformclass):
+        """
+        @param modelimportformclass The ImporterModelForm class (which extends a simple ModelForm)
+        """
         self.instances = []
         self.errors = []
         self.modelimportformclass = modelimportformclass
         self.model = modelimportformclass.Meta.model
+        self.update_cache = None
+        self.update_queryset = None
+
+    def get_for_update(self, pk):
+        return self.update_cache[pk] if self.update_cache else self.update_queryset.get(pk=pk)
 
     def get_valid_fields(self, headers):
         """ Return a list of valid fields for this importer, in the order they
@@ -45,9 +53,25 @@ class ModelImporter:
         )
 
     @transaction.atomic
-    def process(self, headers, rows, commit=False):
+    def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None):
+        """
+
+        @param limit_to_queryset A queryset which limits the instances which can be updated, and creates a cache of the
+            updatable records to improve update performance.
+        """
         # Set up a cache context which will be filled by the Cached fields
         caches = SimpleDictCache()
+
+        # Set up an "update" cache to preload any objects which might be updated
+        if allow_update:
+            self.update_queryset = limit_to_queryset if limit_to_queryset is not None else self.model.objects.all()
+            # We only build the update_cache if limit_to_queryset is provided, with the assumption that the dataset
+            # is then not too big. This may not be a valid assumption.
+            # @todo Could we be smarter about the update cache, e.g. iterate through the source row PKs
+            self.update_cache = {}
+            if limit_to_queryset is not None:
+                for obj in self.update_queryset:
+                    self.update_cache[str(obj.id)] = obj
 
         valid_fields = self.get_valid_fields(headers)
 
@@ -59,7 +83,7 @@ class ModelImporter:
         form_fields = valid_fields + list(set(self.get_required_fields()) - set(valid_fields))
         ModelImportForm = self.get_modelimport_form_class(fields=form_fields)
 
-        # Create form for things?
+        # Create form to pass context to the ImportResultSet @todo evaluate this
         header_form = ModelImportForm(data={}, caches={})
         importresult = ImportResultSet(headers=headers, header_form=header_form)
 
@@ -69,14 +93,25 @@ class ModelImporter:
         for i, row in enumerate(rows, start=1):
             errors = []
             instance = None
-            created = row.get('id', '') == ''  # If ID is blank we are creating a new row, otherwise we are updating
-            import_form_class = ModelImportForm if created else ModelUpdateForm
+            to_be_created = row.get('id', '') == ''  # If ID is blank we are creating a new row, otherwise we are updating
+            to_be_updated = not to_be_created
+            import_form_class = ModelImportForm if to_be_created else ModelUpdateForm
 
-            if not created:
+            if to_be_created and not allow_insert:
+                errors = [('', 'Creating new rows is not permitted')]
+                importresult.append(i, row, errors, instance, to_be_created)
+                continue
+
+            if to_be_updated and not allow_update:
+                errors = [('', 'Updating existing rows is not permitted')]
+                importresult.append(i, row, errors, instance, to_be_created)
+                continue
+
+            if to_be_updated:
                 try:
-                    instance = self.model.objects.get(id=row['id'])
-                except self.model.DoesNotExist:
-                    errors = [('', 'No %s with id %s.' % (self.model._meta.verbose_name.title(), row['id']))]
+                    instance = self.get_for_update(row['id'])
+                except (self.model.DoesNotExist, KeyError):
+                    errors = [('', '%s %s cannot be updated.' % (self.model._meta.verbose_name.title(), row['id']))]
 
             if not errors:
                 form = import_form_class(row, caches, instance=instance)
@@ -85,7 +120,7 @@ class ModelImporter:
                 else:
                     # TODO: Filter out errors associated with FlatRelatedField
                     errors = list(form.errors.items())
-            importresult.append(i, row, errors, instance, created)
+            importresult.append(i, row, errors, instance, to_be_created)
 
         if commit:
             transaction.savepoint_commit(sid)
@@ -103,7 +138,7 @@ class ImportResultSet:
         self.header_form = header_form
 
     def __str__(self):
-        return '{} {}'.format(self.get_import_headers(), self.results)
+        return '{} {}'.format(self.get_import_headers(), self.get_results())
 
     def append(self, index, row, errors, instance, created):
         self.results.append(

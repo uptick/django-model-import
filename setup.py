@@ -32,6 +32,7 @@ try:
         install_requires=[
             'python-dateutil>=2.6.0',
             'tablib>=0.11.5',
+            'django',
         ],
     )
 except NameError:

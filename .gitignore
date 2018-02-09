@@ -8,6 +8,7 @@ build*
 .sconsign.dblite
 dist
 *.egg-info
+.eggs
 db.sqlite3
 environ/
 examples/example_site/env
