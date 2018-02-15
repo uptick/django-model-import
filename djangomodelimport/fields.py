@@ -2,6 +2,7 @@ from dateutil import parser
 
 from django import forms
 from django.forms.utils import from_current_timezone
+from re import match
 
 
 class FlatRelatedField(forms.Field):
@@ -77,7 +78,7 @@ class DateTimeParserField(forms.DateTimeField):
         value = (value or '').strip()
         if value:
             try:
-                return from_current_timezone(parser.parse(value))
+                return from_current_timezone(parser.parse(value, dayfirst=bool(match(r'^\d\d?.\d\d?.\d{4}$',value))))
             except (TypeError, ValueError, OverflowError):
                 raise forms.ValidationError(self.error_messages['invalid'], code='invalid')
 
