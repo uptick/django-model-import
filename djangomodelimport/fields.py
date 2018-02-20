@@ -1,10 +1,12 @@
 import json
+from re import match
 
 from dateutil import parser
 
 from django import forms
 from django.forms.utils import from_current_timezone
-from re import match
+
+from .widgets import JSONFieldWidget
 
 
 class FlatRelatedField(forms.Field):
@@ -80,7 +82,7 @@ class DateTimeParserField(forms.DateTimeField):
         value = (value or '').strip()
         if value:
             try:
-                return from_current_timezone(parser.parse(value, dayfirst=bool(match(r'^\d\d?.\d\d?.\d{4}$',value))))
+                return from_current_timezone(parser.parse(value, dayfirst=bool(match(r'^\d\d?.\d\d?.\d{4}$', value))))
             except (TypeError, ValueError, OverflowError):
                 raise forms.ValidationError(self.error_messages['invalid'], code='invalid')
 
@@ -89,12 +91,26 @@ class DateTimeParserField(forms.DateTimeField):
 
 
 class JSONField(forms.Field):
-    """ This lets you interact with a JSON or HStore type key/value field. """
-    def __init__(self, **params):
-        params['widget'] = params.get('widget', forms.Textarea)
-        super().__init__(**params)
+    """ This lets you store any fields prefixed by the field name into a JSON blob.
 
-    def validate_json(value, is_serialized=False):
+    For example, adding a field:
+        metadata = JSONField()
+
+    When the row is submitted with data that looks like this:
+    id  name    author  metadata_rank   metadata_score
+    -----------------------------------------------
+        ding    bob     hello           twenty
+
+    This field will return a JSON blob that looks like:
+        {rank: "hello", score: "twenty"}
+    """
+    def __init__(self, **kwargs):
+        kwargs['widget'] = kwargs.get('widget', JSONFieldWidget)
+        kwargs['required'] = False
+        kwargs['initial'] = dict
+        super().__init__(**kwargs)
+
+    def validate_json(self, value, is_serialized=False):
         # if empty
         if value is None or value == '' or value == 'null':
             value = '{}'

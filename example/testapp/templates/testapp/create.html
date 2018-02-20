@@ -1,0 +1,22 @@
+{% extends "testapp/base.html" %}
+
+{% block content %}
+  <h3>Create Citation</h3>
+  <p>This form lets you experiment with the ImporterModelForm Fields through a traditional form interface.</p>
+
+  <form action="" method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <p><input type="text" name="metadata_rank" placeholder="Extra Field: Rank" /></p>
+    <p><input type="text" name="metadata_score" placeholder="Extra Field: Score" /></p>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <ul>
+  {% for citation in citations %}
+    <li>{{ citation }} {{ citation.metadata }}</li>
+  {% endfor %}
+  </ul>
+{% endblock %}

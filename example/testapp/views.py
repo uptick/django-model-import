@@ -1,10 +1,11 @@
 from django.urls import reverse
-from django.views.generic.edit import FormView
+from django.views.generic.edit import CreateView, FormView
 
 import djangomodelimport
 
-from .forms import TestImportForm
+from .forms import CitationForm, TestImportForm
 from .importers import CitationImporter
+from .models import Citation
 
 
 class TestImportView(FormView):
@@ -19,16 +20,31 @@ class TestImportView(FormView):
         headers, rows = parser.parse(contents)
 
         importer = djangomodelimport.ModelImporter(CitationImporter)
-        preview = importer.process(headers, rows, commit=False)
 
-        # Make sure there's no errors
-        errors = preview.get_errors()
-        print(errors)
-        results = preview.get_results()
-        print(results)
+        commit = form.cleaned_data['save']
+        results = importer.process(headers, rows, commit=commit)
 
-        # importresult = importer.process(headers, rows, commit=True)
-        # res = importresult.get_results()
+        context = self.get_context_data(results=results)
+        return self.render_to_response(context)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx.update({
+            'citations': Citation.objects.all(),
+        })
+        return ctx
+
+
+class CitationCreateView(CreateView):
+    template_name = 'testapp/create.html'
+    form_class = CitationForm
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx.update({
+            'citations': Citation.objects.all(),
+        })
+        return ctx
 
     def get_success_url(self):
-        return reverse('start') + '?result=OK'
+        return reverse('create')
