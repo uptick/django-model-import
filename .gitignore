@@ -9,9 +9,8 @@ build*
 dist
 *.egg-info
 .eggs
-db.sqlite3
+example/testdb.sqlite3
 environ/
 examples/example_site/env
 **.pem
 src/
-

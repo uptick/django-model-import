@@ -2,7 +2,7 @@ from django import forms
 
 import djangomodelimport
 
-from .models import Author, Book
+from .models import Author, Book, Citation
 
 
 class BookImporter(djangomodelimport.ImporterModelForm):
@@ -26,4 +26,18 @@ class BookImporterWithCache(djangomodelimport.ImporterModelForm):
         fields = (
             'name',
             'author',
+        )
+
+
+class CitationImporter(djangomodelimport.ImporterModelForm):
+    name = forms.CharField()
+    author = djangomodelimport.CachedChoiceField(queryset=Author.objects.all(), to_field='name')
+    metadata = djangomodelimport.JSONField()
+
+    class Meta:
+        model = Citation
+        fields = (
+            'name',
+            'author',
+            'metadata',
         )
