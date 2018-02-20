@@ -1,5 +1,7 @@
-from testapp.importers import BookImporter, BookImporterWithCache
-from testapp.models import Author, Book
+import json
+
+from testapp.importers import BookImporter, BookImporterWithCache, CitationImporter
+from testapp.models import Author, Book, Citation
 
 from django.test import TestCase
 
@@ -14,6 +16,16 @@ sample_csv_1 = """id,name,author
 sample_csv_2 = """id,name,author
 111,Howdy,Author Joe
 333,Goody,Author Bill
+"""
+
+sample_csv_3 = """id,author,name,metadata_isbn,metadata_doi
+,Fred Johnson,Starburst,ISBN333,doi:111
+,Fred Johnson,Gattica,ISBN666,doi:222
+"""
+
+sample_csv_4 = """id,author,name,metadata_xxx,metadata_yyy,metadata_doi
+10,Fred Johnson,Starburst,qqqq,www,valid_doi1
+20,Fred Johnson,Gattica,aaa,bbb,valid_doi2
 """
 
 sample_csv_5 = """id,name,author
@@ -125,3 +137,85 @@ class CachedChoiceFieldTestCase(TestCase):
         # Make sure we get two rows
         self.assertEqual(len(res), 7)
         self.assertEqual(res[0].instance.author.name, 'Aidan Lister')
+
+
+class DMIJSONFieldTestCase(TestCase):
+    def setUp(self):
+        pass
+
+    def test_import(self):
+        Author.objects.get_or_create(name="Fred Johnson")
+
+        parser = djangomodelimport.TablibCSVImportParser(CitationImporter)
+        headers, rows = parser.parse(sample_csv_3)
+
+        importer = djangomodelimport.ModelImporter(CitationImporter)
+        importresult = importer.process(headers, rows, commit=True)
+
+        # Make sure there's no errors
+        errors = importresult.get_errors()
+        self.assertEqual(errors, [])
+
+        res = importresult.get_results()
+
+        # Make sure we get two rows
+        expected_json = "{'isbn': 'ISBN333', 'doi': 'doi:111'}"
+        self.assertEqual(len(res), 2)
+        self.assertEqual(res[0].instance.metadata, expected_json)
+
+        # Really check it worked
+        cite = Citation.objects.get(pk=res[0].instance.pk)
+        self.assertEqual(cite.metadata, expected_json)
+
+    def test_fields_get_merged(self):
+        (author, created) = Author.objects.get_or_create(name="Fred Johnson")
+        c1 = Citation.objects.create(
+            id=10,
+            author=author,
+            name='Diff1',
+            metadata={
+                "doi": "some doi",
+                "isbn": "hello",
+            },
+        )
+        c2 = Citation.objects.create(
+            id=20,
+            author=author,
+            name='Diff2',
+            metadata={
+                "doi": "another doi",
+                "isbn": "mate",
+            },
+        )
+
+        # id,author,name,metadata_xxx,metadata_yyy,metadata_doi
+        # 10,Fred Johnson,Starburst,qqqq,www,valid_doi1
+        # 20,Fred Johnson,Gattica,aaa,,valid_doi2
+        parser = djangomodelimport.TablibCSVImportParser(CitationImporter)
+        headers, rows = parser.parse(sample_csv_4)
+
+        importer = djangomodelimport.ModelImporter(CitationImporter)
+        importresult = importer.process(headers, rows, commit=True)
+
+        # Make sure there's no errors
+        errors = importresult.get_errors()
+        self.assertEqual(errors, [])
+
+        # Check it worked
+        c1.refresh_from_db()
+        c1_expected = {
+            "xxx": "qqqq",
+            "yyy": "www",
+            "doi": "valid_doi1",
+            "isbn": "hello",
+        }
+        self.assertDictEqual(json.loads(c1.metadata.replace("'", '"')), c1_expected)
+
+        c2.refresh_from_db()
+        c2_expected = {
+            "xxx": "aaa",
+            "yyy": "bbb",
+            "doi": "valid_doi2",
+            "isbn": "mate",
+        }
+        self.assertDictEqual(json.loads(c2.metadata.replace("'", '"')), c2_expected)
