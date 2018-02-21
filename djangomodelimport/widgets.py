@@ -27,6 +27,9 @@ class JSONFieldWidget(forms.Widget):
     def render(self, name, value, attrs=None, renderer=None):
         return ''
 
+    def value_omitted_from_data(self, data, files, name):
+        return not any([key.startswith(name) for key in data.keys()])
+
     def value_from_datadict(self, data, files, name):
         extra_fields = {}
         for f in data.keys():
