@@ -25,7 +25,9 @@ class ModelImporter:
         """ Return a list of valid fields for this importer, in the order they
         appear in the input file.
         """
-        return [field for field in headers if field in self.modelimportformclass._meta.fields]
+        valid_present_fields = [field for field in headers if field in self.modelimportformclass._meta.fields]
+        virtual_fields = getattr(self.modelimportformclass.Meta, 'virtual_fields', [])  # See https://github.com/uptick/django-model-import/issues/9
+        return valid_present_fields + list(virtual_fields)
 
     def get_required_fields(self):
         fields = self.model._meta.get_fields()

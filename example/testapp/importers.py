@@ -41,3 +41,6 @@ class CitationImporter(djangomodelimport.ImporterModelForm):
             'author',
             'metadata',
         )
+        # We need to tell django-model-import to import data into "metadata"
+        # even if it's not in the table headings, because it will look like metadata_xxx, metadata_yyy
+        virtual_fields = ('metadata', )
