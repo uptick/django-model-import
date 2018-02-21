@@ -19,7 +19,11 @@ class Book(models.Model):
 class Citation(models.Model):
     name = models.CharField(max_length=100)
     author = models.ForeignKey(Author)
-    metadata = models.TextField()  # Use models.JSONField if your database supports it
+
+    # Add a JSON field (SQLite only supports TextField, but this should work with JSONField or HStoreField)
+    # Setting blank=True is important here to make sure we're testing for:
+    # this issue, https://github.com/uptick/django-model-import/issues/9
+    metadata = models.TextField(blank=True)
 
     def __str__(self):
         return self.name
