@@ -25,7 +25,7 @@ class ModelImporter:
         """ Return a list of valid fields for this importer, in the order they
         appear in the input file.
         """
-        return [field for field in headers if field in self.modelimportformclass.Meta.fields]
+        return [field for field in headers if field in self.modelimportformclass._meta.fields]
 
     def get_required_fields(self):
         fields = self.model._meta.get_fields()
