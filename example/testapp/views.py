@@ -22,9 +22,9 @@ class TestImportView(FormView):
         importer = djangomodelimport.ModelImporter(CitationImporter)
 
         commit = form.cleaned_data['save']
-        results = importer.process(headers, rows, commit=commit)
+        importresult = importer.process(headers, rows, commit=commit)
 
-        context = self.get_context_data(results=results)
+        context = self.get_context_data(importresult=importresult)
         return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):

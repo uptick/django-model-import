@@ -9,23 +9,71 @@
     <button type="submit">Submit</button>
   </form>
 
-  {% if results %}
-    <h3>Errors</h3>
-    <ul>
-    {% for error in results.get_errors %}
-      <li>{{ error }}</li>
-    {% endfor %}
-    </ul>
+  {% if importresult %}
+    {% if importresult.get_errors %}
+      <div class="alert alert-warning">
+        {% with num_rows=importresult.get_errors|length %}
+          <h5>{{ num_rows }} row error{{ num_rows|pluralize }} must be resolved before continuing:</h5>
+        {% endwith %}
+        <ul class="list-unstyled">
+          {% for lineno, errors in importresult.get_errors %}
+            <li>Line {{ lineno }}
+              <ul>
+              {% for field, error in errors %}
+                <li>{{ field }}: {{ error }}</li>
+              {% endfor %}
+              </ul>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% else %}
+      <div class="alert alert-success">
+        Data has passed all checks. You may proceed with the import.
+      </div>
+    {% endif %}
 
-    <h3>Results</h3>
-    <ul>
-    {% for result in results.get_results %}
-      <li>{{ result }}</li>
-    {% endfor %}
-    </ul>
+    <table class="table">
+      <thead>
+        <tr>
+          <th><em>row#</em></th>
+          <th><em>status</em></th>
+          {% for header in importresult.get_import_headers %}
+            <th>{{ header }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      {% for result in importresult.results %}
+        <tr>
+          <td>{{ result.linenumber }}</td>
+          {% if result.is_valid %}
+            <td>
+              OKAY
+              {% if result.instance.pk %}
+                <a href="{{ result.instance.get_absolute_url }}">{{ result.instance.pk }}</a>
+              {% endif %}
+            </td>
+            {% for value in result.get_instance_values %}
+              <td>{{ value|default:"-" }}</td>
+            {% endfor %}
+          {% else %}
+            <td>ERROR</td>
+            <td colspan="100">
+              {% if result.errors %}
+                <ul class="list-unstyled">
+                {% for field, error in result.errors %}
+                  <li>{{ field }}: {{ error }}</li>
+                {% endfor %}
+                </ul>
+              {% endif %}
+            </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </table>
   {% endif %}
 
-  <h3>Records</h3>
+  <h3>Saved Rows</h3>
   <ul>
   {% for citation in citations %}
     <li>{{ citation }} {{ citation.metadata }}</li>
