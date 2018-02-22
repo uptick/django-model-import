@@ -28,36 +28,35 @@ class CachedChoiceFieldFormMixin:
 
 
 class JSONFieldFormMixin:
-    pass
-    # def _clean_fields(self):
-    #     for name, field in self.fields.items():
-    #         # value_from_datadict() gets the data from the data dictionaries.
-    #         # Each widget type knows how to retrieve its own data, because some
-    #         # widgets split data over several HTML fields.
-    #         if field.disabled:
-    #             value = self.get_initial_for_field(field, name)
-    #         else:
-    #             value = field.widget.value_from_datadict(self.data, self.files, self.add_prefix(name))
-    #         try:
-    #             if isinstance(field, FileField):
-    #                 initial = self.get_initial_for_field(field, name)
-    #                 value = field.clean(value, initial)
-    #             # PATCH
-    #             if isinstance(field, JSONField):
-    #                 initial = getattr(self.instance, name)
-    #                 value = field.clean(value)
-    #                 if isinstance(value, str):  # sqlite non-jsonfield support
-    #                     value = json.loads(value.replace("'", '"'))
-    #                 if isinstance(initial, str):  # sqlite non-jsonfield support
-    #                     initial = json.loads(initial.replace("'", '"'))
-    #                 value = dict(initial, **value)  # this is the secret sauce.
-    #                 value = json.dumps(value)
-    #             # ENDPATCH
-    #             else:
-    #                 value = field.clean(value)
-    #             self.cleaned_data[name] = value
-    #             if hasattr(self, 'clean_%s' % name):
-    #                 value = getattr(self, 'clean_%s' % name)()
-    #                 self.cleaned_data[name] = value
-    #         except ValidationError as e:
-    #             self.add_error(name, e)
+    def _clean_fields(self):
+        for name, field in self.fields.items():
+            # value_from_datadict() gets the data from the data dictionaries.
+            # Each widget type knows how to retrieve its own data, because some
+            # widgets split data over several HTML fields.
+            if field.disabled:
+                value = self.get_initial_for_field(field, name)
+            else:
+                value = field.widget.value_from_datadict(self.data, self.files, self.add_prefix(name))
+            try:
+                if isinstance(field, FileField):
+                    initial = self.get_initial_for_field(field, name)
+                    value = field.clean(value, initial)
+                # PATCH
+                if isinstance(field, JSONField):
+                    initial = getattr(self.instance, name)
+                    value = field.clean(value)
+                    if isinstance(value, str):  # sqlite non-jsonfield support
+                        value = json.loads(value.replace("'", '"'))
+                    if isinstance(initial, str):  # sqlite non-jsonfield support
+                        initial = json.loads(initial.replace("'", '"'))
+                    value = dict(initial, **value)  # this is the secret sauce.
+                    value = json.dumps(value)
+                # ENDPATCH
+                else:
+                    value = field.clean(value)
+                self.cleaned_data[name] = value
+                if hasattr(self, 'clean_%s' % name):
+                    value = getattr(self, 'clean_%s' % name)()
+                    self.cleaned_data[name] = value
+            except ValidationError as e:
+                self.add_error(name, e)
