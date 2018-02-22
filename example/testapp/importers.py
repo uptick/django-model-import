@@ -2,7 +2,7 @@ from django import forms
 
 import djangomodelimport
 
-from .models import Author, Book, Citation
+from .models import Author, Book, Citation, Company, Contact
 
 
 class BookImporter(djangomodelimport.ImporterModelForm):
@@ -44,3 +44,22 @@ class CitationImporter(djangomodelimport.ImporterModelForm):
         # We need to tell django-model-import to import data into "metadata"
         # even if it's not in the table headings, because it will look like metadata_xxx, metadata_yyy
         virtual_fields = ('metadata', )
+
+
+class CompanyImporter(djangomodelimport.ImporterModelForm):
+    primary_contact = djangomodelimport.FlatRelatedField(
+        queryset=Contact.objects.all(),
+        fields={
+            'contact_name': {'to_field': 'name', 'required': True},
+            'email': {'to_field': 'email'},
+            'mobile': {'to_field': 'mobile'},
+            'address': {'to_field': 'address'},
+        },
+    )
+
+    class Meta:
+        model = Company
+        fields = (
+            'name',
+            'primary_contact',
+        )

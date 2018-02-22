@@ -1,5 +1,5 @@
-from testapp.importers import BookImporter, BookImporterWithCache, CitationImporter
-from testapp.models import Author, Book, Citation
+from testapp.importers import BookImporter, BookImporterWithCache, CitationImporter, CompanyImporter
+from testapp.models import Author, Book, Citation, Company
 
 from django.test import TestCase
 
@@ -34,6 +34,10 @@ sample_csv_5 = """id,name,author
 ,How to be so good,Aidan Lister
 ,How to be better than that,Aidan Lister
 ,How not to be awesome,Bill
+"""
+
+sample_csv_6 = """id,name,contact_name,email,mobile,address
+,Microsoft,Aidan,aidan@ms.com,0432 000 000,SomeAdress
 """
 
 
@@ -233,3 +237,23 @@ class DMIJSONFieldTestCase(TestCase):
             "isbn": "mate",
         }
         self.assertDictEqual(c2.metadata, c2_expected)
+
+
+class DMIFlatRelatedFieldTestCase(TestCase):
+    def setUp(self):
+        pass
+
+    def test_import(self):
+        parser = djangomodelimport.TablibCSVImportParser(CompanyImporter)
+        headers, rows = parser.parse(sample_csv_6)
+
+        importer = djangomodelimport.ModelImporter(CompanyImporter)
+        importresult = importer.process(headers, rows, commit=True)
+
+        # Make sure there's no errors
+        errors = importresult.get_errors()
+        self.assertEqual(errors, [])
+
+        org = Company.objects.all().first()
+        self.assertEqual(org.name, 'Microsoft')
+        self.assertEqual(org.primary_contact.name, 'Aidan')
