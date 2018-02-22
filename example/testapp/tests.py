@@ -126,8 +126,24 @@ class CachedChoiceFieldTestCase(TestCase):
 
         importer = djangomodelimport.ModelImporter(BookImporterWithCache)
 
-        # @todo check number of queries
-        importresult = importer.process(headers, rows, commit=True)
+        # Check for only two queries (one to look up Bill, another to look up Aidan Lister)
+        # Expected query log:
+        # SAVEPOINT "s140735624082240_x2"
+        # SAVEPOINT "s140735624082240_x3"
+        # SELECT "testapp_author"."id", "testapp_author"."name" FROM "testapp_author" WHERE "testapp_author"."name" = 'Aidan Lister'
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be awesome', 2)
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be really awesome', 2)
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be the best', 2)
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be great', 2)
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be so good', 2)
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be better than that', 2)
+        # SELECT "testapp_author"."id", "testapp_author"."name" FROM "testapp_author" WHERE "testapp_author"."name" = 'Bill'
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How not to be awesome', 3)
+        # RELEASE SAVEPOINT "s140735624082240_x3"
+        # RELEASE SAVEPOINT "s140735624082240_x2"
+        with self.assertNumQueries(13):
+            importresult = importer.process(headers, rows, commit=True)
+
         res = importresult.get_results()
 
         # Make sure there's no errors
@@ -209,7 +225,6 @@ class DMIJSONFieldTestCase(TestCase):
             "doi": "valid_doi1",
             "isbn": "hello",
         }
-        import ipdb; ipdb.set_trace()
         self.assertDictEqual(c1.metadata, c1_expected)
 
         c2.refresh_from_db()
