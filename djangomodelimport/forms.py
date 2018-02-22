@@ -2,9 +2,10 @@ from django import forms
 
 from .fields import CachedChoiceField, FlatRelatedField
 from .loaders import CachedInstanceLoader
+from .magic import CachedChoiceFieldFormMixin, FlatRelatedFieldFormMixin, JSONFieldFormMixin
 
 
-class ImporterModelForm(forms.ModelForm):
+class ImporterModelForm(JSONFieldFormMixin, FlatRelatedFieldFormMixin, CachedChoiceFieldFormMixin, forms.ModelForm):
     """ Extends the ModelForm to prime our caches and tweaks the validation
     routines to ensure we are not doing too many queries with our cached fields.
     """
@@ -80,13 +81,3 @@ class ImporterModelForm(forms.ModelForm):
             else:
                 instance_values.append(getattr(instance, header))
         return instance_values
-
-    # TODO:
-    # def full_clean(self):
-    #     """ Validate that required fields in FlatRelated fields have been provided. """
-    #     super().full_clean()
-    #     for field, fieldinstance in self.fields.items():
-    #         if isinstance(fieldinstance, FlatRelatedField):
-    #             for f in fieldinstance.fields:
-    #                 import pdb; pdb.set_trace()
-    #                 pass

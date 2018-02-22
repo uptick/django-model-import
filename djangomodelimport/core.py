@@ -85,7 +85,8 @@ class ModelImporter:
         form_fields = valid_fields + list(set(self.get_required_fields()) - set(valid_fields))
         ModelImportForm = self.get_modelimport_form_class(fields=form_fields)
 
-        # Create form to pass context to the ImportResultSet @todo evaluate this
+        # Create form to pass context to the ImportResultSet
+        # TODO: evaluate this, only added because of FlatRelatedField
         header_form = ModelImportForm(data={}, caches={})
         importresult = ImportResultSet(headers=headers, header_form=header_form)
 
@@ -116,7 +117,7 @@ class ModelImporter:
                     errors = [('', '%s %s cannot be updated.' % (self.model._meta.verbose_name.title(), row['id']))]
 
             if not errors:
-                form = import_form_class(row, caches, instance=instance)
+                form = import_form_class(row, caches=caches, instance=instance)
                 if form.is_valid():
                     instance = form.save(commit=commit)
                 else:
