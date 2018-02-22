@@ -1,5 +1,3 @@
-import json
-
 from testapp.importers import BookImporter, BookImporterWithCache, CitationImporter
 from testapp.models import Author, Book, Citation
 
