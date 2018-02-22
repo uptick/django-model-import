@@ -1,5 +1,3 @@
-import json
-
 from django.core.exceptions import ValidationError
 from django.forms import FileField
 
@@ -45,12 +43,7 @@ class JSONFieldFormMixin:
                 if isinstance(field, JSONField):
                     initial = getattr(self.instance, name)
                     value = field.clean(value)
-                    if isinstance(value, str):  # sqlite non-jsonfield support
-                        value = json.loads(value.replace("'", '"'))
-                    if isinstance(initial, str):  # sqlite non-jsonfield support
-                        initial = json.loads(initial.replace("'", '"'))
                     value = dict(initial, **value)  # this is the secret sauce.
-                    value = json.dumps(value)
                 # ENDPATCH
                 else:
                     value = field.clean(value)

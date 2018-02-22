@@ -1,3 +1,5 @@
+from jsonfield import JSONField
+
 from django.db import models
 
 
@@ -23,7 +25,7 @@ class Citation(models.Model):
     # Add a JSON field (SQLite only supports TextField, but this should work with JSONField or HStoreField)
     # Setting blank=True is important here to make sure we're testing for:
     # this issue, https://github.com/uptick/django-model-import/issues/9
-    metadata = models.TextField(blank=True)
+    metadata = JSONField()
 
     def __str__(self):
         return self.name

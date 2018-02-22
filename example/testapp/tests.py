@@ -159,7 +159,7 @@ class DMIJSONFieldTestCase(TestCase):
         res = importresult.get_results()
 
         # Make sure we get two rows
-        expected_json = "{'isbn': 'ISBN333', 'doi': 'doi:111'}"
+        expected_json = {'isbn': 'ISBN333', 'doi': 'doi:111'}
         self.assertEqual(len(res), 2)
         self.assertEqual(res[0].instance.metadata, expected_json)
 
@@ -209,7 +209,8 @@ class DMIJSONFieldTestCase(TestCase):
             "doi": "valid_doi1",
             "isbn": "hello",
         }
-        self.assertDictEqual(json.loads(c1.metadata.replace("'", '"')), c1_expected)
+        import ipdb; ipdb.set_trace()
+        self.assertDictEqual(c1.metadata, c1_expected)
 
         c2.refresh_from_db()
         c2_expected = {
@@ -218,4 +219,4 @@ class DMIJSONFieldTestCase(TestCase):
             "doi": "valid_doi2",
             "isbn": "mate",
         }
-        self.assertDictEqual(json.loads(c2.metadata.replace("'", '"')), c2_expected)
+        self.assertDictEqual(c2.metadata, c2_expected)
