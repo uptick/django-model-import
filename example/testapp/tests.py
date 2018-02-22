@@ -1,4 +1,4 @@
-from testapp.importers import BookImporter
+from testapp.importers import BookImporter, BookImporterWithCache
 from testapp.models import Author, Book
 
 from django.test import TestCase
@@ -14,6 +14,16 @@ sample_csv_1 = """id,name,author
 sample_csv_2 = """id,name,author
 111,Howdy,Author Joe
 333,Goody,Author Bill
+"""
+
+sample_csv_5 = """id,name,author
+,How to be awesome,Aidan Lister
+,How to be really awesome,Aidan Lister
+,How to be the best,Aidan Lister
+,How to be great,Aidan Lister
+,How to be so good,Aidan Lister
+,How to be better than that,Aidan Lister
+,How not to be awesome,Bill
 """
 
 
@@ -89,3 +99,29 @@ class DMICoreTestCase(TestCase):
         errors = preview.get_errors()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0], (2, [('', 'Book 333 cannot be updated.')]))
+
+
+class CachedChoiceFieldTestCase(TestCase):
+    def setUp(self):
+        pass
+
+    def test_importer(self):
+        Author.objects.create(name='Aidan Lister')
+        Author.objects.create(name='Bill')
+
+        parser = djangomodelimport.TablibCSVImportParser(BookImporterWithCache)
+        headers, rows = parser.parse(sample_csv_5)
+
+        importer = djangomodelimport.ModelImporter(BookImporterWithCache)
+
+        # @todo check number of queries
+        importresult = importer.process(headers, rows, commit=True)
+        res = importresult.get_results()
+
+        # Make sure there's no errors
+        errors = importresult.get_errors()
+        self.assertEqual(errors, [])
+
+        # Make sure we get two rows
+        self.assertEqual(len(res), 7)
+        self.assertEqual(res[0].instance.author.name, 'Aidan Lister')
