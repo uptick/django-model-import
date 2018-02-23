@@ -2,3 +2,4 @@ django==1.11
 python-dateutil
 tablib
 ipdb
+jsonfield
