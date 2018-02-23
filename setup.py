@@ -17,7 +17,7 @@ try:
         license='BSD',
         author='Uptick',
         author_email='dev@uptickhq.com',
-        url='https://github.com/ABASystems/django-model-import',
+        url='https://github.com/uptick/django-model-import',
         keywords=['csv', 'import'],
         classifiers=[
             'Development Status :: 3 - Alpha',
@@ -34,9 +34,9 @@ try:
             'tablib>=0.11.5',
             'django',
         ],
-	tests_require=[
-	    'jsonfield',
-	],
+        tests_require=[
+            'jsonfield',
+        ],
     )
 except NameError:
     raise RuntimeError("Unable to determine version.")
