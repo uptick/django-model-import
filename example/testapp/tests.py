@@ -41,7 +41,7 @@ sample_csv_6 = """id,name,contact_name,email,mobile,address
 """
 
 
-class DMICoreTestCase(TestCase):
+class DMICoreTests(TestCase):
     def setUp(self):
         pass
 
@@ -115,7 +115,7 @@ class DMICoreTestCase(TestCase):
         self.assertEqual(errors[0], (2, [('', 'Book 333 cannot be updated.')]))
 
 
-class CachedChoiceFieldTestCase(TestCase):
+class CachedChoiceFieldTests(TestCase):
     def setUp(self):
         pass
 
@@ -157,7 +157,7 @@ class CachedChoiceFieldTestCase(TestCase):
         self.assertEqual(res[0].instance.author.name, 'Aidan Lister')
 
 
-class DMIJSONFieldTestCase(TestCase):
+class DMIJSONFieldTests(TestCase):
     def setUp(self):
         pass
 
@@ -239,7 +239,7 @@ class DMIJSONFieldTestCase(TestCase):
         self.assertDictEqual(c2.metadata, c2_expected)
 
 
-class DMIFlatRelatedFieldTestCase(TestCase):
+class DMIFlatRelatedFieldTests(TestCase):
     def setUp(self):
         pass
 
