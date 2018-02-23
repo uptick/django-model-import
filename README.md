@@ -1,6 +1,7 @@
 # django-model-import
 
 [![PyPI version](https://badge.fury.io/py/django-model-import.svg)](https://badge.fury.io/py/django-model-import)
+[![Build Status](https://travis-ci.org/uptick/django-model-import.svg?branch=master)](https://travis-ci.org/uptick/django-model-import)
 
 Django Model Import is a light weight CSV importer built for speed.
 
