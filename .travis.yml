@@ -9,7 +9,7 @@ install:
   - pip3 install -r example/requirements.txt
 
 script:
-  - cd testapp && python manage.py test
+  - cd example && python manage.py test
 
 branches:
   only:
