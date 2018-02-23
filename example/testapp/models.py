@@ -12,7 +12,7 @@ class Author(models.Model):
 
 class Book(models.Model):
     name = models.CharField(max_length=100)
-    author = models.ForeignKey(Author)
+    author = models.ForeignKey(Author, on_delete=models.PROTECT)
 
     def __str__(self):
         return self.name
@@ -20,7 +20,7 @@ class Book(models.Model):
 
 class Citation(models.Model):
     name = models.CharField(max_length=100)
-    author = models.ForeignKey(Author)
+    author = models.ForeignKey(Author, on_delete=models.PROTECT)
 
     # Add a JSON field (SQLite only supports TextField, but this should work with JSONField or HStoreField)
     # Setting blank=True is important here to make sure we're testing for:
@@ -43,7 +43,7 @@ class Contact(models.Model):
 
 class Company(models.Model):
     name = models.CharField(max_length=100)
-    primary_contact = models.ForeignKey(Contact)
+    primary_contact = models.ForeignKey(Contact, on_delete=models.PROTECT)
 
     def __str__(self):
         return self.name
