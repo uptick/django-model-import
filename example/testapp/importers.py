@@ -2,7 +2,7 @@ from django import forms
 
 import djangomodelimport
 
-from .models import Author, Book
+from .models import Author, Book, Citation, Company, Contact
 
 
 class BookImporter(djangomodelimport.ImporterModelForm):
@@ -26,4 +26,40 @@ class BookImporterWithCache(djangomodelimport.ImporterModelForm):
         fields = (
             'name',
             'author',
+        )
+
+
+class CitationImporter(djangomodelimport.ImporterModelForm):
+    name = forms.CharField()
+    author = djangomodelimport.CachedChoiceField(queryset=Author.objects.all(), to_field='name')
+    metadata = djangomodelimport.JSONField()
+
+    class Meta:
+        model = Citation
+        fields = (
+            'name',
+            'author',
+            'metadata',
+        )
+        # We need to tell django-model-import to import data into "metadata"
+        # even if it's not in the table headings, because it will look like metadata_xxx, metadata_yyy
+        virtual_fields = ('metadata', )
+
+
+class CompanyImporter(djangomodelimport.ImporterModelForm):
+    primary_contact = djangomodelimport.FlatRelatedField(
+        queryset=Contact.objects.all(),
+        fields={
+            'contact_name': {'to_field': 'name', 'required': True},
+            'email': {'to_field': 'email'},
+            'mobile': {'to_field': 'mobile'},
+            'address': {'to_field': 'address'},
+        },
+    )
+
+    class Meta:
+        model = Company
+        fields = (
+            'name',
+            'primary_contact',
         )

@@ -18,10 +18,10 @@ class CachedInstanceLoader(dict):
 
         try:
             self[value] = inst = self.queryset.get(**params)
-        except self.model.DoesNotExist as e:
+        except self.model.DoesNotExist:
             self[value] = inst = None  # Further warnings will be surpressed
             raise
-        except self.model.MultipleObjectsReturned as e:
+        except self.model.MultipleObjectsReturned:
             self[value] = inst = None  # Further warnings will be surpressed
             raise
         return inst

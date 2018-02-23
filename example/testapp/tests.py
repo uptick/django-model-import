@@ -1,5 +1,5 @@
-from testapp.importers import BookImporter, BookImporterWithCache
-from testapp.models import Author, Book
+from testapp.importers import BookImporter, BookImporterWithCache, CitationImporter, CompanyImporter
+from testapp.models import Author, Book, Citation, Company
 
 from django.test import TestCase
 
@@ -16,6 +16,16 @@ sample_csv_2 = """id,name,author
 333,Goody,Author Bill
 """
 
+sample_csv_3 = """id,author,name,metadata_isbn,metadata_doi
+,Fred Johnson,Starburst,ISBN333,doi:111
+,Fred Johnson,Gattica,ISBN666,doi:222
+"""
+
+sample_csv_4 = """id,author,name,metadata_xxx,metadata_yyy,metadata_doi
+10,Fred Johnson,Starburst,qqqq,www,valid_doi1
+20,Fred Johnson,Gattica,aaa,bbb,valid_doi2
+"""
+
 sample_csv_5 = """id,name,author
 ,How to be awesome,Aidan Lister
 ,How to be really awesome,Aidan Lister
@@ -26,8 +36,12 @@ sample_csv_5 = """id,name,author
 ,How not to be awesome,Bill
 """
 
+sample_csv_6 = """id,name,contact_name,email,mobile,address
+,Microsoft,Aidan,aidan@ms.com,0432 000 000,SomeAdress
+"""
 
-class DMICoreTestCase(TestCase):
+
+class DMICoreTests(TestCase):
     def setUp(self):
         pass
 
@@ -101,7 +115,7 @@ class DMICoreTestCase(TestCase):
         self.assertEqual(errors[0], (2, [('', 'Book 333 cannot be updated.')]))
 
 
-class CachedChoiceFieldTestCase(TestCase):
+class CachedChoiceFieldTests(TestCase):
     def setUp(self):
         pass
 
@@ -114,8 +128,24 @@ class CachedChoiceFieldTestCase(TestCase):
 
         importer = djangomodelimport.ModelImporter(BookImporterWithCache)
 
-        # @todo check number of queries
-        importresult = importer.process(headers, rows, commit=True)
+        # Check for only two queries (one to look up Bill, another to look up Aidan Lister)
+        # Expected query log:
+        # SAVEPOINT "s140735624082240_x2"
+        # SAVEPOINT "s140735624082240_x3"
+        # SELECT "testapp_author"."id", "testapp_author"."name" FROM "testapp_author" WHERE "testapp_author"."name" = 'Aidan Lister'
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be awesome', 2)
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be really awesome', 2)
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be the best', 2)
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be great', 2)
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be so good', 2)
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be better than that', 2)
+        # SELECT "testapp_author"."id", "testapp_author"."name" FROM "testapp_author" WHERE "testapp_author"."name" = 'Bill'
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How not to be awesome', 3)
+        # RELEASE SAVEPOINT "s140735624082240_x3"
+        # RELEASE SAVEPOINT "s140735624082240_x2"
+        with self.assertNumQueries(13):
+            importresult = importer.process(headers, rows, commit=True)
+
         res = importresult.get_results()
 
         # Make sure there's no errors
@@ -125,3 +155,105 @@ class CachedChoiceFieldTestCase(TestCase):
         # Make sure we get two rows
         self.assertEqual(len(res), 7)
         self.assertEqual(res[0].instance.author.name, 'Aidan Lister')
+
+
+class DMIJSONFieldTests(TestCase):
+    def setUp(self):
+        pass
+
+    def test_import(self):
+        Author.objects.get_or_create(name="Fred Johnson")
+
+        parser = djangomodelimport.TablibCSVImportParser(CitationImporter)
+        headers, rows = parser.parse(sample_csv_3)
+
+        importer = djangomodelimport.ModelImporter(CitationImporter)
+        importresult = importer.process(headers, rows, commit=True)
+
+        # Make sure there's no errors
+        errors = importresult.get_errors()
+        self.assertEqual(errors, [])
+
+        res = importresult.get_results()
+
+        # Make sure we get two rows
+        expected_json = {'isbn': 'ISBN333', 'doi': 'doi:111'}
+        self.assertEqual(len(res), 2)
+        self.assertEqual(res[0].instance.metadata, expected_json)
+
+        # Really check it worked
+        cite = Citation.objects.get(pk=res[0].instance.pk)
+        self.assertEqual(cite.metadata, expected_json)
+
+    def test_fields_get_merged(self):
+        (author, created) = Author.objects.get_or_create(name="Fred Johnson")
+        c1 = Citation.objects.create(
+            id=10,
+            author=author,
+            name='Diff1',
+            metadata={
+                "doi": "some doi",
+                "isbn": "hello",
+            },
+        )
+        c2 = Citation.objects.create(
+            id=20,
+            author=author,
+            name='Diff2',
+            metadata={
+                "doi": "another doi",
+                "isbn": "mate",
+            },
+        )
+
+        # id,author,name,metadata_xxx,metadata_yyy,metadata_doi
+        # 10,Fred Johnson,Starburst,qqqq,www,valid_doi1
+        # 20,Fred Johnson,Gattica,aaa,,valid_doi2
+        parser = djangomodelimport.TablibCSVImportParser(CitationImporter)
+        headers, rows = parser.parse(sample_csv_4)
+
+        importer = djangomodelimport.ModelImporter(CitationImporter)
+        importresult = importer.process(headers, rows, commit=True)
+
+        # Make sure there's no errors
+        errors = importresult.get_errors()
+        self.assertEqual(errors, [])
+
+        # Check it worked
+        c1.refresh_from_db()
+        c1_expected = {
+            "xxx": "qqqq",
+            "yyy": "www",
+            "doi": "valid_doi1",
+            "isbn": "hello",
+        }
+        self.assertDictEqual(c1.metadata, c1_expected)
+
+        c2.refresh_from_db()
+        c2_expected = {
+            "xxx": "aaa",
+            "yyy": "bbb",
+            "doi": "valid_doi2",
+            "isbn": "mate",
+        }
+        self.assertDictEqual(c2.metadata, c2_expected)
+
+
+class DMIFlatRelatedFieldTests(TestCase):
+    def setUp(self):
+        pass
+
+    def test_import(self):
+        parser = djangomodelimport.TablibCSVImportParser(CompanyImporter)
+        headers, rows = parser.parse(sample_csv_6)
+
+        importer = djangomodelimport.ModelImporter(CompanyImporter)
+        importresult = importer.process(headers, rows, commit=True)
+
+        # Make sure there's no errors
+        errors = importresult.get_errors()
+        self.assertEqual(errors, [])
+
+        org = Company.objects.all().first()
+        self.assertEqual(org.name, 'Microsoft')
+        self.assertEqual(org.primary_contact.name, 'Aidan')
