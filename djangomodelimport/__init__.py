@@ -4,6 +4,6 @@ from .fields import CachedChoiceField, PreloadedChoiceField, DateTimeParserField
 from .widgets import CompositeLookupWidget  # noqa
 from .parsers import ImportParser, TablibCSVImportParser, TablibXLSXImportParser  # noqa
 
-VERSION = (0, 3, 0)
+VERSION = (0, 3, 1)
 
 __version__ = '.'.join(str(x) for x in VERSION[:(2 if VERSION[2] == 0 else 3)])  # noqa
