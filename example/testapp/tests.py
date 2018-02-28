@@ -261,7 +261,7 @@ class FlatRelatedFieldTests(TestCase):
         self.assertEqual(org.primary_contact.name, 'Aidan')
 
 
-class DMIFlatRelatedFieldTests(TestCase):
+class DateTimeParserFieldTests(TestCase):
     def setUp(self):
         self.ledtf = DateTimeParserField()  # Little-endian
         self.medtf = DateTimeParserField(middle_endian=True)
