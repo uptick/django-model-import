@@ -1,7 +1,6 @@
 import json
-from re import match
-
 from dateutil import parser
+from re import match
 
 from django import forms
 from django.forms.utils import from_current_timezone
@@ -77,12 +76,28 @@ class PreloadedChoiceField(forms.Field):
 
 
 class DateTimeParserField(forms.DateTimeField):
-    """ A DateTime parser field that does it's best effort to understand. """
+    """ A DateTime parser field that does it's best effort to understand.
+
+        Defaults to assuming little endian when there is ambiguity:
+        - XX/XX/XX -> DD/MM/YY
+        - XX/XX/XXXX -> DD/MM/YYYY
+
+        Pass in `middle_endian=True` to get:
+        - XX/XX/XX -> MM/DD/YY
+        - XX/XX/XXXX -> MM/DD/YYYY
+
+        If year is passed first, will always use big endian:
+        - XXXX/XX/XX -> YYYY/MM/DD
+    """
+    def __init__(self, middle_endian=False, *args, **kwargs):
+        self.middle_endian = middle_endian
+        return super().__init__(*args, **kwargs)
+
     def to_python(self, value):
         value = (value or '').strip()
         if value:
             try:
-                dayfirst = not bool(match(r'^\d{4}.\d\d?.\d\d?$', value))
+                dayfirst = not bool(match(r'^\d{4}.\d\d?.\d\d?$', value)) and not self.middle_endian
                 return from_current_timezone(parser.parse(value, dayfirst=dayfirst))
             except (TypeError, ValueError, OverflowError):
                 raise forms.ValidationError(self.error_messages['invalid'], code='invalid')

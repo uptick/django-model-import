@@ -1,9 +1,11 @@
+import datetime
+
 from testapp.importers import BookImporter, BookImporterWithCache, CitationImporter, CompanyImporter
 from testapp.models import Author, Book, Citation, Company
 
 from django.test import TestCase
 
-import djangomodelimport
+from djangomodelimport import DateTimeParserField, ModelImporter, TablibCSVImportParser
 
 
 sample_csv_1 = """id,name,author
@@ -41,7 +43,7 @@ sample_csv_6 = """id,name,contact_name,email,mobile,address
 """
 
 
-class DMICoreTests(TestCase):
+class ImporterTests(TestCase):
     def setUp(self):
         pass
 
@@ -49,10 +51,10 @@ class DMICoreTests(TestCase):
         Author.objects.create(name='Aidan Lister')
         Author.objects.create(name='Bill')
 
-        parser = djangomodelimport.TablibCSVImportParser(BookImporter)
+        parser = TablibCSVImportParser(BookImporter)
         headers, rows = parser.parse(sample_csv_1)
 
-        importer = djangomodelimport.ModelImporter(BookImporter)
+        importer = ModelImporter(BookImporter)
         preview = importer.process(headers, rows, commit=False)
 
         # Make sure there's no errors
@@ -67,10 +69,10 @@ class DMICoreTests(TestCase):
         self.assertEqual(res[0].instance.author.name, 'Aidan Lister')
 
     def test_importer_no_insert(self):
-        parser = djangomodelimport.TablibCSVImportParser(BookImporter)
+        parser = TablibCSVImportParser(BookImporter)
         headers, rows = parser.parse(sample_csv_1)
 
-        importer = djangomodelimport.ModelImporter(BookImporter)
+        importer = ModelImporter(BookImporter)
         preview = importer.process(headers, rows, allow_insert=False, commit=False)
 
         # Make sure there's no errors
@@ -85,10 +87,10 @@ class DMICoreTests(TestCase):
         Book.objects.create(id=111, name='Hello', author=a1)
         Book.objects.create(id=333, name='Goodbye', author=a2)
 
-        parser = djangomodelimport.TablibCSVImportParser(BookImporter)
+        parser = TablibCSVImportParser(BookImporter)
         headers, rows = parser.parse(sample_csv_2)
 
-        importer = djangomodelimport.ModelImporter(BookImporter)
+        importer = ModelImporter(BookImporter)
         preview = importer.process(headers, rows, allow_update=False, limit_to_queryset=Book.objects.all(), commit=False)
 
         # Make sure there's no errors
@@ -103,10 +105,10 @@ class DMICoreTests(TestCase):
         b1 = Book.objects.create(id=111, name='Hello', author=a1)
         Book.objects.create(id=333, name='Goodbye', author=a2)
 
-        parser = djangomodelimport.TablibCSVImportParser(BookImporter)
+        parser = TablibCSVImportParser(BookImporter)
         headers, rows = parser.parse(sample_csv_2)
 
-        importer = djangomodelimport.ModelImporter(BookImporter)
+        importer = ModelImporter(BookImporter)
         preview = importer.process(headers, rows, allow_update=True, limit_to_queryset=Book.objects.filter(id=b1.id), commit=False)
 
         # Make sure there's no errors
@@ -119,14 +121,14 @@ class CachedChoiceFieldTests(TestCase):
     def setUp(self):
         pass
 
-    def test_importer(self):
+    def test_import(self):
         Author.objects.create(name='Aidan Lister')
         Author.objects.create(name='Bill')
 
-        parser = djangomodelimport.TablibCSVImportParser(BookImporterWithCache)
+        parser = TablibCSVImportParser(BookImporterWithCache)
         headers, rows = parser.parse(sample_csv_5)
 
-        importer = djangomodelimport.ModelImporter(BookImporterWithCache)
+        importer = ModelImporter(BookImporterWithCache)
 
         # Check for only two queries (one to look up Bill, another to look up Aidan Lister)
         # Expected query log:
@@ -157,17 +159,17 @@ class CachedChoiceFieldTests(TestCase):
         self.assertEqual(res[0].instance.author.name, 'Aidan Lister')
 
 
-class DMIJSONFieldTests(TestCase):
+class JSONFieldTests(TestCase):
     def setUp(self):
         pass
 
     def test_import(self):
         Author.objects.get_or_create(name="Fred Johnson")
 
-        parser = djangomodelimport.TablibCSVImportParser(CitationImporter)
+        parser = TablibCSVImportParser(CitationImporter)
         headers, rows = parser.parse(sample_csv_3)
 
-        importer = djangomodelimport.ModelImporter(CitationImporter)
+        importer = ModelImporter(CitationImporter)
         importresult = importer.process(headers, rows, commit=True)
 
         # Make sure there's no errors
@@ -209,10 +211,10 @@ class DMIJSONFieldTests(TestCase):
         # id,author,name,metadata_xxx,metadata_yyy,metadata_doi
         # 10,Fred Johnson,Starburst,qqqq,www,valid_doi1
         # 20,Fred Johnson,Gattica,aaa,,valid_doi2
-        parser = djangomodelimport.TablibCSVImportParser(CitationImporter)
+        parser = TablibCSVImportParser(CitationImporter)
         headers, rows = parser.parse(sample_csv_4)
 
-        importer = djangomodelimport.ModelImporter(CitationImporter)
+        importer = ModelImporter(CitationImporter)
         importresult = importer.process(headers, rows, commit=True)
 
         # Make sure there's no errors
@@ -239,15 +241,15 @@ class DMIJSONFieldTests(TestCase):
         self.assertDictEqual(c2.metadata, c2_expected)
 
 
-class DMIFlatRelatedFieldTests(TestCase):
+class FlatRelatedFieldTests(TestCase):
     def setUp(self):
         pass
 
     def test_import(self):
-        parser = djangomodelimport.TablibCSVImportParser(CompanyImporter)
+        parser = TablibCSVImportParser(CompanyImporter)
         headers, rows = parser.parse(sample_csv_6)
 
-        importer = djangomodelimport.ModelImporter(CompanyImporter)
+        importer = ModelImporter(CompanyImporter)
         importresult = importer.process(headers, rows, commit=True)
 
         # Make sure there's no errors
@@ -257,3 +259,21 @@ class DMIFlatRelatedFieldTests(TestCase):
         org = Company.objects.all().first()
         self.assertEqual(org.name, 'Microsoft')
         self.assertEqual(org.primary_contact.name, 'Aidan')
+
+
+class DMIFlatRelatedFieldTests(TestCase):
+    def setUp(self):
+        self.ledtf = DateTimeParserField()  # Little-endian
+        self.medtf = DateTimeParserField(middle_endian=True)
+
+    def test_little_endian_parsing(self):
+        self.assertEqual(self.ledtf.to_python('01/02/03'), datetime.datetime(2003, 2, 1, 0, 0))
+        self.assertEqual(self.ledtf.to_python('01/02/2003'), datetime.datetime(2003, 2, 1, 0, 0))
+
+    def test_middle_endian_parsing(self):
+        self.assertEqual(self.medtf.to_python('01/02/03'), datetime.datetime(2003, 1, 2, 0, 0))
+        self.assertEqual(self.medtf.to_python('01/02/2003'), datetime.datetime(2003, 1, 2, 0, 0))
+
+    def test_big_endian_parsing(self):
+        self.assertEqual(self.ledtf.to_python('2001/02/03'), datetime.datetime(2001, 2, 3, 0, 0))
+        self.assertEqual(self.medtf.to_python('2001/02/03'), datetime.datetime(2001, 2, 3, 0, 0))
