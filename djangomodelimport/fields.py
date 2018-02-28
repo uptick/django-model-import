@@ -82,7 +82,7 @@ class DateTimeParserField(forms.DateTimeField):
         value = (value or '').strip()
         if value:
             try:
-                dayfirst = not bool(match(r'^\d\d\d\d?.\d\d?.\d\d$', value))
+                dayfirst = not bool(match(r'^\d{4}.\d\d?.\d\d?$', value))
                 return from_current_timezone(parser.parse(value, dayfirst=dayfirst))
             except (TypeError, ValueError, OverflowError):
                 raise forms.ValidationError(self.error_messages['invalid'], code='invalid')
