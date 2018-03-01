@@ -277,3 +277,6 @@ class DateTimeParserFieldTests(TestCase):
     def test_big_endian_parsing(self):
         self.assertEqual(self.ledtf.to_python('2001/02/03'), datetime.datetime(2001, 2, 3, 0, 0))
         self.assertEqual(self.medtf.to_python('2001/02/03'), datetime.datetime(2001, 2, 3, 0, 0))
+
+        self.assertEqual(self.ledtf.to_python('2018-02-12 17:06:46'), datetime.datetime(2018, 2, 12, 17, 6, 46))
+        self.assertEqual(self.medtf.to_python('2018-02-12 17:06:46'), datetime.datetime(2018, 2, 12, 17, 6, 46))

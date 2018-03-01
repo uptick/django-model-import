@@ -1,6 +1,6 @@
 import json
+import re
 from dateutil import parser
-from re import match
 
 from django import forms
 from django.forms.utils import from_current_timezone
@@ -97,7 +97,7 @@ class DateTimeParserField(forms.DateTimeField):
         value = (value or '').strip()
         if value:
             try:
-                dayfirst = not bool(match(r'^\d{4}.\d\d?.\d\d?$', value)) and not self.middle_endian
+                dayfirst = not bool(re.match(r'^\d{4}.\d\d?.\d\d?', value)) and not self.middle_endian
                 return from_current_timezone(parser.parse(value, dayfirst=dayfirst))
             except (TypeError, ValueError, OverflowError):
                 raise forms.ValidationError(self.error_messages['invalid'], code='invalid')
