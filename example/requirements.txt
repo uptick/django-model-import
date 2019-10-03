@@ -1,4 +1,4 @@
-django==1.11
+django==1.11.23
 python-dateutil
 tablib
 ipdb
