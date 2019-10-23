@@ -1,23 +1,10 @@
-import tablib
-
-
-class ImportParser:
+class BaseImportParser:
     def __init__(self, modelvalidator):
         """ We provide the modelvalidator to get some Meta information about
         valid fields, and any soft headings.
         """
         self.modelvalidator = modelvalidator
 
-    def parse(self, data):
-        """ Parsers should return a tuple containing (headings, data)
-
-        They should also take a dictionary of soft_headings which map
-        similar names to actual headings.
-        """
-        raise NotImplemented
-
-
-class TablibCSVImportParser(ImportParser):
     def get_soft_headings(self):
         # Soft headings are used to provide similar heading suggestions
         # and look like this: {the field name: [list of other possible names] }
@@ -37,7 +24,25 @@ class TablibCSVImportParser(ImportParser):
         return header_map
 
     def parse(self, data):
-        dataset = tablib.Dataset()
+        """ Parsers should return a tuple containing (headings, data)
+
+        They should also take a dictionary of soft_headings which map
+        similar names to actual headings.
+        """
+        raise NotImplementedError
+
+
+class TablibBaseImportParser(BaseImportParser):
+    def __init__(self, *args, **kwargs):
+        # Inline import, so tablib is only grabbed if/when this Parser is instanciated.
+        from tablib import Dataset
+        self.dataset_class = Dataset
+        super().__init__(*args, **kwargs)
+
+
+class TablibCSVImportParser(TablibBaseImportParser):
+    def parse(self, data):
+        dataset = self.dataset_class()
         dataset.csv = data
 
         header_map = self.get_soft_headings()
@@ -52,11 +57,9 @@ class TablibCSVImportParser(ImportParser):
         return (dataset.headers, dataset.dict)
 
 
-class TablibXLSXImportParser(ImportParser):
+class TablibXLSXImportParser(TablibBaseImportParser):
     def parse(self, data):
-        # @todo work with soft_headings to map e.g. "Active" to "is_active"
-        # on the modelvalidator
-        dataset = tablib.Dataset()
+        dataset = self.dataset_class()
         # TODO: This does not currently work, as dataset.xlsx cannot be set.
         # http://docs.python-tablib.org/en/latest/api/#tablib.Dataset.xlsx
         # We can wait for it to be supported, or in the meantime, use this converter:
