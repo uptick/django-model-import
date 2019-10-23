@@ -14,6 +14,7 @@ try:
         version=__version__,
         description="Fast CSV imports using django model forms.",
         long_description=open(os.path.join(os.path.dirname(__file__), 'README.md')).read(),
+        long_description_content_type='text/markdown',
         license='BSD',
         author='Uptick',
         author_email='dev@uptickhq.com',
