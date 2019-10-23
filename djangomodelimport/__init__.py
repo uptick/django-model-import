@@ -1,8 +1,14 @@
 from .core import ModelImporter  # noqa
+from .fields import (  # noqa
+    CachedChoiceField,
+    DateTimeParserField,
+    FlatRelatedField,
+    JSONField,
+    PreloadedChoiceField
+)
 from .forms import ImporterModelForm  # noqa
-from .fields import CachedChoiceField, PreloadedChoiceField, DateTimeParserField, FlatRelatedField, JSONField  # noqa
+from .parsers import BaseImportParser, TablibCSVImportParser, TablibXLSXImportParser  # noqa
 from .widgets import CompositeLookupWidget  # noqa
-from .parsers import ImportParser, TablibCSVImportParser, TablibXLSXImportParser  # noqa
 
 VERSION = (0, 3, 2)
 
