@@ -55,7 +55,7 @@ class ModelImporter:
         )
 
     @transaction.atomic
-    def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None):
+    def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None, author=None):
         """
 
         @param limit_to_queryset A queryset which limits the instances which can be updated, and creates a cache of the
@@ -87,7 +87,7 @@ class ModelImporter:
 
         # Create form to pass context to the ImportResultSet
         # TODO: evaluate this, only added because of FlatRelatedField
-        header_form = ModelImportForm(data={}, caches={})
+        header_form = ModelImportForm(data={}, caches={}, author=author)
         importresult = ImportResultSet(headers=headers, header_form=header_form)
 
         sid = transaction.savepoint()
@@ -117,7 +117,7 @@ class ModelImporter:
                     errors = [('', '%s %s cannot be updated.' % (self.model._meta.verbose_name.title(), row['id']))]
 
             if not errors:
-                form = import_form_class(row, caches=caches, instance=instance)
+                form = import_form_class(row, caches=caches, instance=instance, author=author)
                 if form.is_valid():
                     instance = form.save(commit=commit)
                 else:
