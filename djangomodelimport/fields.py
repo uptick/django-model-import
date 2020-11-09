@@ -72,7 +72,7 @@ class PreloadedChoiceField(forms.Field):
     to avoid hitting the database for each relationship in the import.
     """
     def clean(self, value):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class DateTimeParserField(forms.DateTimeField):
