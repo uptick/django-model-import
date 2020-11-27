@@ -1,6 +1,5 @@
 import os
 import re
-
 from setuptools import setup
 
 # Get version this way, so that we don't load any modules.
