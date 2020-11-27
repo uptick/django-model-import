@@ -12,5 +12,6 @@ class ImporterModelForm(JSONFieldFormMixin, FlatRelatedFieldFormMixin, CachedCho
         self.author = author
         super().__init__(data, *args, **kwargs)
 
-    def validate_unique(self):
-        pass
+    # This improves preview performance but eliminates validation on uniqueness constraints
+    # def validate_unique(self):
+    #     pass

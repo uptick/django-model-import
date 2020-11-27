@@ -4,7 +4,6 @@ from django.forms import FileField
 from .fields import CachedChoiceField, FlatRelatedField, JSONField
 from .loaders import CachedInstanceLoader
 
-
 """ These mixins hold all the code that relates to our special fields (flat related, json, cached choice)
 that just doesn't work without access to the form instance. """
 
@@ -61,7 +60,10 @@ class FlatRelatedFieldFormMixin:
                 rel = getattr(instance, rel_field_name)
                 instance_values.append(getattr(rel, self.fields[rel_field_name].fields[header]['to_field']))
             else:
-                instance_values.append(getattr(instance, header))
+                try:
+                    instance_values.append(getattr(instance, header))
+                except ValueError:
+                    instance_values.append('')  # trying to access an m2m is not allowed before it has been saved
         return instance_values
 
     # TODO:
