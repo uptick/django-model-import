@@ -41,8 +41,8 @@ class CachedChoiceField(forms.Field):
     def clean(self, value):
         value = super().clean(value)
         # Fast fail if no value provided
-        value_exists = value and all(value)  # this will work for strings, and tuples of values
-        if not value_exists:
+        # We used to check `value and all(value)` but it's fine to have a lookup like ('Westfield', '')
+        if not value:
             return None
 
         # Try and get the value from the loader
