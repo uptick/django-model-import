@@ -140,8 +140,8 @@ class ImportResultSet:
         self.headers = headers
         self.header_form = header_form
 
-    def __str__(self):
-        return '{} {}'.format(self.get_import_headers(), self.get_results())
+    def __repr__(self):
+        return f'{self.get_import_headers()}\n{self.get_results()}'
 
     def append(self, index, row, errors, instance, created):
         self.results.append(
@@ -168,8 +168,8 @@ class ImportResultRow:
         self.instance = instance
         self.created = created
 
-    def __str__(self):
-        return '{} {}'.format(self.linenumber, self.row)
+    def __repr__(self):
+        return f'{self.linenumber}. {self.row}'
 
     def get_instance_values(self):
         return self.resultset.header_form.get_instance_values(self.instance, self.resultset.get_import_headers())

@@ -38,6 +38,9 @@ class CachedChoiceField(forms.Field):
     def set_cache(self, cache):
         self.instancecache = cache
 
+    def get_from_cache(self, value):
+        return self.instancecache[value]
+
     def clean(self, value):
         value = super().clean(value)
         # Fast fail if no value provided
@@ -47,7 +50,7 @@ class CachedChoiceField(forms.Field):
 
         # Try and get the value from the loader
         try:
-            cleaned_value = self.instancecache[value]
+            cleaned_value = self.get_from_cache(value)
         except self.model.DoesNotExist:
             raise forms.ValidationError(
                 "No %s matching '%s'." % (self.model._meta.verbose_name.title(), value)
