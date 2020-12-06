@@ -37,10 +37,11 @@ class CachedChoiceField(UseCacheMixin, forms.Field):
     If you expect a larger number of different values, you might want to use a
     PreloadedChoiceField.
     """
-    def __init__(self, queryset, to_field=None, *args, **kwargs):
+    def __init__(self, queryset, to_field=None, none_if_missing=[], *args, **kwargs):
         self.queryset = queryset
         self.model = queryset.model
         self.to_field = to_field
+        self.none_if_missing = none_if_missing
         return super().__init__(*args, **kwargs)
 
     def get_from_cache(self, value):
@@ -48,10 +49,20 @@ class CachedChoiceField(UseCacheMixin, forms.Field):
 
     def clean(self, value):
         value = super().clean(value)
+
         # Fast fail if no value provided
-        # We used to check `value and all(value)` but it's fine to have a lookup like ('Westfield', '')
         if not value:
             return None
+
+        # Composite lookups are fine to have blank values in them e.g. for a firstname/lastname
+        # lookup, it's fine to have ('Jenny', '').
+        # However, in some situations we need some fields to be set to be able to do the lookup.
+        # If they are missing then the lookup is blank.
+        # @todo Think about whether this should be a validation error if self.required is True
+        if self.none_if_missing:
+            for field_pos in self.none_if_missing:
+                if not value[field_pos]:
+                    return None
 
         # Try and get the value from the loader
         try:
