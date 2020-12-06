@@ -16,7 +16,10 @@ class UseCacheMixin:
 
 
 class FlatRelatedField(forms.Field):
-    """ Will create the related object if it does not yet exist. """
+    """ Will create the related object if it does not yet exist.
+
+    All the magic happens in magic.py in FlatRelatedFieldFormMixin
+    """
     def __init__(self, queryset, fields=[], *args, **kwargs):
         self.queryset = queryset
         # TODO: If lookup key is provided, allow using it to look up value instead of only

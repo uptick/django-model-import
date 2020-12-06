@@ -40,7 +40,8 @@ class FlatRelatedFieldFormMixin:
                 instance = getattr(self.instance, field)
                 for attr, value in mapped_values.items():
                     setattr(instance, attr, value)
-            instance.save()
+
+            instance.save()  # @todo this gets fired during preview :( this whole thing needs to go
             self.data[field] = instance
 
     def get_headers(self, given_headers=None):
