@@ -8,6 +8,13 @@ from django.forms.utils import from_current_timezone
 from .widgets import JSONFieldWidget
 
 
+class UseCacheMixin:
+    instancecache = None
+
+    def set_cache(self, cache):
+        self.instancecache = cache
+
+
 class FlatRelatedField(forms.Field):
     """ Will create the related object if it does not yet exist. """
     def __init__(self, queryset, fields=[], *args, **kwargs):
@@ -20,23 +27,18 @@ class FlatRelatedField(forms.Field):
         return super().__init__(required=False, *args, **kwargs)
 
 
-class CachedChoiceField(forms.Field):
+class CachedChoiceField(UseCacheMixin, forms.Field):
     """ Use a CachedChoiceField when you have a large table of choices, but
     expect the number of different values that occur to be relatively small.
 
     If you expect a larger number of different values, you might want to use a
     PreloadedChoiceField.
     """
-    instancecache = None
-
     def __init__(self, queryset, to_field=None, *args, **kwargs):
         self.queryset = queryset
         self.model = queryset.model
         self.to_field = to_field
         return super().__init__(*args, **kwargs)
-
-    def set_cache(self, cache):
-        self.instancecache = cache
 
     def get_from_cache(self, value):
         return self.instancecache[value]

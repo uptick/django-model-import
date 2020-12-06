@@ -141,7 +141,7 @@ class ImportResultSet:
         self.header_form = header_form
 
     def __repr__(self):
-        return f'{self.get_import_headers()}\n{self.get_results()}'
+        return f'ImportResultSet ({len(self.results)} rows, {len(self.get_errors())} errors)'
 
     def append(self, index, row, errors, instance, created):
         self.results.append(
@@ -169,7 +169,11 @@ class ImportResultRow:
         self.created = created
 
     def __repr__(self):
-        return f'{self.linenumber}. {self.row}'
+        valid_str = "valid" if self.is_valid() else "invalid"
+        mode_str = "create" if self.created else "update"
+        res = self.get_instance_values() if self.is_valid() else self.errors
+        sample = str([(k, v) for k, v in self.row.items()])[:100]
+        return f'{self.linenumber}. [{valid_str}] [{mode_str}] ... {sample} ... {res}'
 
     def get_instance_values(self):
         return self.resultset.header_form.get_instance_values(self.instance, self.resultset.get_import_headers())

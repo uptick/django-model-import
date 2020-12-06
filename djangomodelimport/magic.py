@@ -1,7 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.forms import FileField
 
-from .fields import CachedChoiceField, FlatRelatedField, JSONField
+from .fields import CachedChoiceField, FlatRelatedField, JSONField, UseCacheMixin
 from .loaders import CachedInstanceLoader
 
 """ These mixins hold all the code that relates to our special fields (flat related, json, cached choice)
@@ -82,7 +82,7 @@ class CachedChoiceFieldFormMixin:
         super().__init__(data, *args, **kwargs)
         for field, fieldinstance in self.fields.items():
             # For each CachedInstanceLoader, prime the cache.
-            if isinstance(fieldinstance, CachedChoiceField):
+            if isinstance(fieldinstance, UseCacheMixin):
                 if field not in self.caches:
                     self.caches[field] = CachedInstanceLoader(fieldinstance.queryset, fieldinstance.to_field)
                 fieldinstance.set_cache(self.caches[field])
