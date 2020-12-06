@@ -55,7 +55,7 @@ class ModelImporter:
         )
 
     @transaction.atomic
-    def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None, author=None):
+    def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None, author=None, progress_logger=None):
         """
 
         @param limit_to_queryset A queryset which limits the instances which can be updated, and creates a cache of the
@@ -123,7 +123,9 @@ class ModelImporter:
                 else:
                     # TODO: Filter out errors associated with FlatRelatedField
                     errors = list(form.errors.items())
-            importresult.append(i, row, errors, instance, to_be_created)
+            result_row = importresult.append(i, row, errors, instance, to_be_created)
+            if progress_logger:
+                progress_logger(result_row)
 
         if commit:
             transaction.savepoint_commit(sid)
@@ -144,9 +146,9 @@ class ImportResultSet:
         return f'ImportResultSet ({len(self.results)} rows, {len(self.get_errors())} errors)'
 
     def append(self, index, row, errors, instance, created):
-        self.results.append(
-            ImportResultRow(self, index, row, errors, instance, created)
-        )
+        result_row = ImportResultRow(self, index, row, errors, instance, created)
+        self.results.append(result_row)
+        return result_row
 
     def get_import_headers(self):
         return self.header_form.get_headers(self.headers)
