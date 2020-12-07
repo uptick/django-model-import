@@ -66,7 +66,7 @@ class CachedChoiceField(UseCacheMixin, forms.Field):
 
         # Try and get the value from the loader
         try:
-            cleaned_value = self.get_from_cache(value)
+            return self.get_from_cache(value)
         except self.model.DoesNotExist:
             raise forms.ValidationError(
                 "No %s matching '%s'." % (self.model._meta.verbose_name.title(), value)
@@ -75,15 +75,6 @@ class CachedChoiceField(UseCacheMixin, forms.Field):
             raise forms.ValidationError(
                 "Multiple %s matching '%s'. Expected just one." % (self.model._meta.verbose_name_plural.title(), value)
             )
-
-        # Return it
-        if cleaned_value:
-            return cleaned_value
-
-        # Raise
-        raise forms.ValidationError(
-            "No %s matching '%s'." % (self.model._meta.verbose_name.title(), value)
-        )
 
 
 class PreloadedChoiceField(forms.Field):
