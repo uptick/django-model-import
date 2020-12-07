@@ -182,3 +182,6 @@ class ImportResultRow:
 
     def is_valid(self):
         return len(self.errors) == 0
+
+    def get_errors(self):
+        return self.errors
