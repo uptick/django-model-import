@@ -3,6 +3,33 @@ import operator
 from django import forms
 
 
+class DisplayChoiceWidget(forms.Widget):
+    """ This widget is helpful when the value being uploaded by the customer is the
+    display choice, not the value. This widget will map the display choice back to the value.
+    """
+    choices = None
+    display_to_choice_map = None
+
+    def flip_enum(self, choices):
+        return dict(zip(dict(choices).values(), dict(choices).keys()))
+
+    def __init__(self, choices, *args, **kwargs):
+        self.choices = choices
+        self.display_to_choice_map = self.flip_enum(choices)
+        return super().__init__(choices, *args, **kwargs)
+
+    def value_from_datadict(self, data, files, name):
+        """
+        Given a dictionary of data and this widget's name, return the value
+        of this widget or None if it's not provided.
+        """
+        val = data.get(name)
+        return self.display_to_choice_map.get(val)
+
+    def format_value(self, value):
+        return self.choices.get(value)
+
+
 class CompositeLookupWidget(forms.Widget):
     def __init__(self, source, *args, **kwargs):
         self.source = source
