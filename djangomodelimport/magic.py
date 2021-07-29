@@ -65,6 +65,8 @@ class FlatRelatedFieldFormMixin:
                     instance_values.append(getattr(instance, header))
                 except ValueError:
                     instance_values.append('')  # trying to access an m2m is not allowed before it has been saved
+                except AttributeError:
+                    instance_values.append('')  # trying to access a field that doesn't exist on the model definition, should we check for the field in _meta.exclude?
         return instance_values
 
     # TODO:
