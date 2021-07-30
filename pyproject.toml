@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "djangomodelimport"
-version = "0.4.6"
+version = "0.4.7"
 description = ""
 authors = ["Aidan Lister <aidan@uptickhq.com>"]
 readme = "README.md"
@@ -13,7 +13,7 @@ documentation = "https://github.com/uptick/django-model-import/tree/master/tests
 python = "^3.9"
 python-dateutil = "^2.8.2"
 tablib = "^3.0.0"
-Django = "^3"
+Django = "^3.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
