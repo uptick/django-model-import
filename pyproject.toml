@@ -4,6 +4,10 @@ version = "0.4.6"
 description = ""
 authors = ["Aidan Lister <aidan@uptickhq.com>"]
 readme = "README.md"
+license = "MIT"
+homepage = "https://github.com/uptick/django-model-import"
+repository = "https://github.com/uptick/django-model-import"
+documentation = "https://github.com/uptick/django-model-import/tree/master/tests/djangoexample"
 
 [tool.poetry.dependencies]
 python = "^3.9"
