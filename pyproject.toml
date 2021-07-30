@@ -13,7 +13,7 @@ documentation = "https://github.com/uptick/django-model-import/tree/master/tests
 python = "^3.9"
 python-dateutil = "^2.8.2"
 tablib = "^3.0.0"
-Django = "^3.2.5"
+Django = "^3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
