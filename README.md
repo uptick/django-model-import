@@ -19,10 +19,8 @@ fields are needed to uniquely identify a resource.
 
 ## Installation
 
-Standard pip install:
-
 ```bash
-pip install django-model-import
+poetry add django-model-import
 ```
 
 
