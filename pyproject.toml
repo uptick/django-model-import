@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "djangomodelimport"
-version = "0.4.8"
+version = "0.4.9"
 description = ""
 authors = ["Aidan Lister <aidan@uptickhq.com>"]
 readme = "README.md"
