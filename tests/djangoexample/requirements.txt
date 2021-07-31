@@ -1,5 +1,0 @@
-django==2.2.24
-python-dateutil
-tablib
-ipdb
-jsonfield

@@ -48,11 +48,16 @@ class ModelImporter:
         otherwise the absence of a value can be taken as false for boolean fields,
         where as we want the model's default value to kick in.
         """
-        return modelform_factory(
+        klass = modelform_factory(
             self.model,
             form=self.modelimportformclass,
             fields=fields,
         )
+        base_fields_to_del = set(klass.base_fields.keys()) - set(fields)
+        for f in base_fields_to_del:
+            del klass.base_fields[f]
+        return klass
+
 
     @transaction.atomic
     def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None, author=None, progress_logger=None):

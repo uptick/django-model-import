@@ -17,6 +17,7 @@ Django = "^3.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
+jsonfield = "^3.1.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
