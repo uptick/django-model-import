@@ -60,7 +60,7 @@ class ModelImporter:
         return klass
 
     @transaction.atomic
-    def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None, author=None, progress_logger=None, skip_func=None):
+    def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None, author=None, progress_logger=None, skip_func=None, resultset_cls=ImportResultSet):
         """ Process the data.
 
         @param limit_to_queryset A queryset which limits the instances which can be updated, and creates a cache of the
@@ -93,7 +93,7 @@ class ModelImporter:
         # Create form to pass context to the ImportResultSet
         # TODO: evaluate this, only added because of FlatRelatedField
         header_form = ModelImportForm(data={}, caches={}, author=author)
-        importresult = ImportResultSet(headers=headers, header_form=header_form)
+        importresult = resultset_cls(headers=headers, header_form=header_form)
 
         sid = transaction.savepoint()
 

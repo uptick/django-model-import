@@ -37,7 +37,7 @@ class ImportResultSet:
         self.failed = failed
 
     def get_counts(self):
-        return (created, updated, skipped, failed)
+        return (self.created, self.updated, self.skipped, self.failed)
 
 
 class ImportResultRow:
