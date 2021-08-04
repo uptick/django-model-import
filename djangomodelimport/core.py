@@ -107,20 +107,22 @@ class ModelImporter:
             import_form_class = ModelImportForm if to_be_created else ModelUpdateForm
 
             if to_be_created and not allow_insert:
-                errors = [('', 'Creating new rows is not permitted')]
+                errors = [('id', 'Creating new rows is not permitted')]
                 importresult.append(i, row, errors, instance, to_be_created)
                 continue
 
             if to_be_updated and not allow_update:
-                errors = [('', 'Updating existing rows is not permitted')]
+                errors = [('id', 'Updating existing rows is not permitted')]
                 importresult.append(i, row, errors, instance, to_be_created)
                 continue
 
             if to_be_updated:
                 try:
                     instance = self.get_for_update(row['id'])
-                except (self.model.DoesNotExist, KeyError):
-                    errors = [('', '%s %s cannot be updated.' % (self.model._meta.verbose_name.title(), row['id']))]
+                except self.model.DoesNotExist:
+                    errors = [('id', f'{self.model._meta.verbose_name.title()} {row["id"]} does not exist.')]
+                except KeyError:
+                    errors = [('id', f'{self.model._meta.verbose_name.title()} {row["id"]} cannot be updated.')]
 
             if not errors:
                 form = import_form_class(row, caches=caches, instance=instance, author=author)
@@ -129,6 +131,7 @@ class ModelImporter:
                 else:
                     # TODO: Filter out errors associated with FlatRelatedField
                     errors = list(form.errors.items())
+
             result_row = importresult.append(i, row, errors, instance, to_be_created)
             if progress_logger:
                 progress_logger(result_row)
