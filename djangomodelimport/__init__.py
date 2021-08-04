@@ -11,4 +11,4 @@ from .parsers import BaseImportParser, TablibCSVImportParser, TablibXLSXImportPa
 from .resultset import ImportResultRow, ImportResultSet
 from .widgets import CompositeLookupWidget  # noqa
 
-__version__ = '0.4.6'
+__version__ = '0.4.12'
