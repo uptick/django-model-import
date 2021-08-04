@@ -47,6 +47,13 @@ sample_csv_8_books = """id,name
 804,How to be awesome
 """
 
+sample_csv_9_books = """id,name,author,skip
+,How to be fine,Aidan Lister,true
+,How to be average,Aidan Lister,
+,How to be the best,Aidan Lister,
+,How to be awesome,Aidan Lister,true
+"""
+
 
 class ImporterTests(TestCase):
     def setUp(self):
@@ -83,7 +90,7 @@ class ImporterTests(TestCase):
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 2)
-        self.assertEqual(errors[0], (1, [('', 'Creating new rows is not permitted')]))
+        self.assertEqual(errors[0], (1, [('id', 'Creating new rows is not permitted')]))
 
     def test_importer_no_update(self):
         a1 = Author.objects.create(name='Aidan Lister')
@@ -101,7 +108,7 @@ class ImporterTests(TestCase):
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 2)
-        self.assertEqual(errors[0], (1, [('', 'Updating existing rows is not permitted')]))
+        self.assertEqual(errors[0], (1, [('id', 'Updating existing rows is not permitted')]))
 
     def test_importer_limited_queryset(self):
         a1 = Author.objects.create(name='Author Joe')
@@ -119,7 +126,7 @@ class ImporterTests(TestCase):
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0], (2, [('', 'Book 333 cannot be updated.')]))
+        self.assertEqual(errors[0], (2, [('id', 'Book 333 cannot be updated.')]))
 
     def test_importer_limited_queryset(self):
         a1 = Author.objects.create(name='Author Joe')
@@ -137,7 +144,7 @@ class ImporterTests(TestCase):
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0], (2, [('', 'Book 333 cannot be updated.')]))
+        self.assertEqual(errors[0], (2, [('id', 'Book 333 cannot be updated.')]))
 
     def test_required_fields_on_update(self):
         a1 = Author.objects.create(name='Aidan Lister')
@@ -152,10 +159,10 @@ class ImporterTests(TestCase):
         headers, rows = parser.parse(sample_csv_8_books)
 
         importer = ModelImporter(BookImporter)
-        preview = importer.process(headers, rows, allow_update=True, commit=True)
+        res = importer.process(headers, rows, allow_update=True, commit=True)
 
         # Make sure there's no errors
-        errors = preview.get_errors()
+        errors = res.get_errors()
         self.assertEqual(len(errors), 0)
 
         # Check we updated properly
@@ -165,6 +172,22 @@ class ImporterTests(TestCase):
         self.assertEqual(b1.author.name, 'Aidan Lister')
         self.assertEqual(b4.name, 'How to be awesome')
         self.assertEqual(b4.author.name, 'Maddi T')
+
+    def test_skip_function(self):
+        Author.objects.create(name='Aidan Lister')
+        parser = TablibCSVImportParser(BookImporter)
+        headers, rows = parser.parse(sample_csv_9_books)
+
+        importer = ModelImporter(BookImporter)
+        res = importer.process(headers, rows, allow_update=True, commit=True, skip_func=lambda row: row.get('skip') == 'true')
+
+        # Make sure there's no errors
+        errors = res.get_errors()
+        self.assertEqual(len(errors), 0)
+
+        # Check two rows were skipped and two imported
+        self.assertEqual(res.skipped, 2)
+        self.assertEqual(res.created, 2)
 
 
 class CachedChoiceFieldTests(TestCase):

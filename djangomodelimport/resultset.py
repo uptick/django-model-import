@@ -1,9 +1,13 @@
 class ImportResultSet:
+    """ Hold all imported results. """
     results = None
     headers = None
     header_form = None
+    created = 0
+    updated = 0
+    skipped = 0
+    failed = 0
 
-    """ Hold all imported results. """
     def __init__(self, headers, header_form):
         self.results = []
         self.headers = headers
@@ -26,9 +30,22 @@ class ImportResultSet:
     def get_errors(self):
         return [(row.linenumber, row.errors) for row in self.results if not row.is_valid()]
 
+    def set_counts(self, created=created, updated=updated, skipped=skipped, failed=failed):
+        self.created = created
+        self.updated = updated
+        self.skipped = skipped
+        self.failed = failed
+
 
 class ImportResultRow:
     """ Hold the result of an imported row. """
+    resultset = None
+    linenumber = None
+    row = None
+    errors = None
+    instance = None
+    created = None
+
     def __init__(self, resultset, linenumber, row, errors, instance, created):
         self.resultset = resultset
         self.linenumber = linenumber

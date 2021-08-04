@@ -61,7 +61,7 @@ class ModelImporter:
 
 
     @transaction.atomic
-    def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None, author=None, progress_logger=None):
+    def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None, author=None, progress_logger=None, skip_func=None):
         """
 
         @param limit_to_queryset A queryset which limits the instances which can be updated, and creates a cache of the
@@ -99,11 +99,13 @@ class ModelImporter:
         sid = transaction.savepoint()
 
         # Start processing
+        created = updated = skipped = failed = 0
         for i, row in enumerate(rows, start=1):
             errors = []
             instance = None
             to_be_created = row.get('id', '') == ''  # If ID is blank we are creating a new row, otherwise we are updating
             to_be_updated = not to_be_created
+            to_be_skipped = skip_func(row) if skip_func else False
             import_form_class = ModelImportForm if to_be_created else ModelUpdateForm
 
             if to_be_created and not allow_insert:
@@ -124,13 +126,24 @@ class ModelImporter:
                 except KeyError:
                     errors = [('id', f'{self.model._meta.verbose_name.title()} {row["id"]} cannot be updated.')]
 
+            if to_be_skipped:
+                skipped += 1
+                continue
+
             if not errors:
                 form = import_form_class(row, caches=caches, instance=instance, author=author)
                 if form.is_valid():
                     instance = form.save(commit=commit)
+                    if to_be_created:
+                        created += 1
+                    if to_be_updated:
+                        updated += 1
                 else:
                     # TODO: Filter out errors associated with FlatRelatedField
                     errors = list(form.errors.items())
+
+            if not instance or not instance.pk:
+                failed += 1
 
             result_row = importresult.append(i, row, errors, instance, to_be_created)
             if progress_logger:
@@ -141,4 +154,5 @@ class ModelImporter:
         else:
             transaction.savepoint_rollback(sid)
 
+        importresult.set_counts(created=created, updated=updated, skipped=skipped, failed=failed)
         return importresult
