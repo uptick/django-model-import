@@ -59,10 +59,9 @@ class ModelImporter:
             del klass.base_fields[f]
         return klass
 
-
     @transaction.atomic
     def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None, author=None, progress_logger=None, skip_func=None):
-        """
+        """ Process the data.
 
         @param limit_to_queryset A queryset which limits the instances which can be updated, and creates a cache of the
             updatable records to improve update performance.
@@ -109,12 +108,12 @@ class ModelImporter:
             import_form_class = ModelImportForm if to_be_created else ModelUpdateForm
 
             if to_be_created and not allow_insert:
-                errors = [('id', 'Creating new rows is not permitted')]
+                errors = [('id', ['Creating new rows is not permitted'])]
                 importresult.append(i, row, errors, instance, to_be_created)
                 continue
 
             if to_be_updated and not allow_update:
-                errors = [('id', 'Updating existing rows is not permitted')]
+                errors = [('id', ['Updating existing rows is not permitted'])]
                 importresult.append(i, row, errors, instance, to_be_created)
                 continue
 
@@ -122,9 +121,9 @@ class ModelImporter:
                 try:
                     instance = self.get_for_update(row['id'])
                 except self.model.DoesNotExist:
-                    errors = [('id', f'{self.model._meta.verbose_name.title()} {row["id"]} does not exist.')]
+                    errors = [('id', [f'{self.model._meta.verbose_name.title()} {row["id"]} does not exist.'])]
                 except KeyError:
-                    errors = [('id', f'{self.model._meta.verbose_name.title()} {row["id"]} cannot be updated.')]
+                    errors = [('id', [f'{self.model._meta.verbose_name.title()} {row["id"]} cannot be updated.'])]
 
             if to_be_skipped:
                 skipped += 1

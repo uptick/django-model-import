@@ -36,6 +36,9 @@ class ImportResultSet:
         self.skipped = skipped
         self.failed = failed
 
+    def get_counts(self):
+        return (created, updated, skipped, failed)
+
 
 class ImportResultRow:
     """ Hold the result of an imported row. """

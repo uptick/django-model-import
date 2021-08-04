@@ -90,7 +90,7 @@ class ImporterTests(TestCase):
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 2)
-        self.assertEqual(errors[0], (1, [('id', 'Creating new rows is not permitted')]))
+        self.assertEqual(errors[0], (1, [('id', ['Creating new rows is not permitted'])]))
 
     def test_importer_no_update(self):
         a1 = Author.objects.create(name='Aidan Lister')
@@ -108,7 +108,7 @@ class ImporterTests(TestCase):
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 2)
-        self.assertEqual(errors[0], (1, [('id', 'Updating existing rows is not permitted')]))
+        self.assertEqual(errors[0], (1, [('id', ['Updating existing rows is not permitted'])]))
 
     def test_importer_limited_queryset(self):
         a1 = Author.objects.create(name='Author Joe')
@@ -126,7 +126,7 @@ class ImporterTests(TestCase):
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0], (2, [('id', 'Book 333 cannot be updated.')]))
+        self.assertEqual(errors[0], (2, [('id', ['Book 333 cannot be updated.'])]))
 
     def test_importer_limited_queryset(self):
         a1 = Author.objects.create(name='Author Joe')
@@ -144,7 +144,7 @@ class ImporterTests(TestCase):
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0], (2, [('id', 'Book 333 cannot be updated.')]))
+        self.assertEqual(errors[0], (2, [('id', ['Book 333 cannot be updated.'])]))
 
     def test_required_fields_on_update(self):
         a1 = Author.objects.create(name='Aidan Lister')
