@@ -19,6 +19,13 @@ class ModelImporter:
         self.update_cache = None
         self.update_queryset = None
 
+    def post_collection_hook(self):
+        """
+        Allows processes to be run on the collection of objects created or updated during the
+        process method. This method is designed to be overridden in inheriting class.
+        """
+        pass
+
     def get_for_update(self, pk):
         return self.update_cache[pk] if self.update_cache else self.update_queryset.get(pk=pk)
 
@@ -150,6 +157,7 @@ class ModelImporter:
 
         if commit:
             transaction.savepoint_commit(sid)
+            self.post_collection_hook()
         else:
             transaction.savepoint_rollback(sid)
 
