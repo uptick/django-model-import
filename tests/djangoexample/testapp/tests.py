@@ -128,31 +128,13 @@ class ImporterTests(TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0], (2, [('id', ['Book 333 cannot be updated.'])]))
 
-    def test_importer_limited_queryset(self):
-        a1 = Author.objects.create(name='Author Joe')
-        a2 = Author.objects.create(name='Author Bill')
-
-        b1 = Book.objects.create(id=111, name='Hello', author=a1)
-        Book.objects.create(id=333, name='Goodbye', author=a2)
-
-        parser = TablibCSVImportParser(BookImporter)
-        headers, rows = parser.parse(sample_csv_2_books)
-
-        importer = ModelImporter(BookImporter)
-        preview = importer.process(headers, rows, allow_update=True, limit_to_queryset=Book.objects.filter(id=b1.id), commit=False)
-
-        # Make sure there's no errors
-        errors = preview.get_errors()
-        self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0], (2, [('id', ['Book 333 cannot be updated.'])]))
-
     def test_required_fields_on_update(self):
         a1 = Author.objects.create(name='Aidan Lister')
         a2 = Author.objects.create(name='Maddi T')
 
         b1 = Book.objects.create(id=801, name='Hello b1', author=a1)
-        b2 = Book.objects.create(id=802, name='Hello b2', author=a1)
-        b3 = Book.objects.create(id=803, name='Hello b3', author=a2)
+        Book.objects.create(id=802, name='Hello b2', author=a1)
+        Book.objects.create(id=803, name='Hello b3', author=a2)
         b4 = Book.objects.create(id=804, name='Hello b4', author=a2)
 
         parser = TablibCSVImportParser(BookImporter)
