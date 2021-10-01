@@ -1,6 +1,6 @@
 import datetime
 from testapp.importers import BookImporter, BookImporterWithCache, CitationImporter, CompanyImporter
-from testapp.models import Author, Book, Citation, Company
+from testapp.models import Author, Book, Citation, Company, Contact
 
 from django.test import TestCase
 
@@ -314,6 +314,27 @@ class FlatRelatedFieldTests(TestCase):
         org = Company.objects.all().first()
         self.assertEqual(org.name, 'Microsoft')
         self.assertEqual(org.primary_contact.name, 'Aidan')
+
+    def test_update(self):
+        contact = Contact.objects.create(name='Tapir', email='ziggur@t.com', mobile='5317707')
+        company = Company.objects.create(name='Okapi', primary_contact=contact)
+
+        headers = ['id', 'contact_name', 'email']
+        rows = [
+            {'id': company.id, 'contact_name': 'Foo Fighter Client', 'email': 'b@rrow.com'},
+        ]
+
+        importer = ModelImporter(CompanyImporter)
+        importresult = importer.process(headers, rows, commit=True)
+
+        # Make sure there's no errors
+        errors = importresult.get_errors()
+        self.assertEqual(errors, [])
+
+        company.refresh_from_db()
+        self.assertEqual(company.primary_contact.name, 'Foo Fighter Client')
+        self.assertEqual(company.primary_contact.email, 'b@rrow.com')
+        self.assertEqual(company.primary_contact.mobile, '5317707')  # This one should've stayed the same.
 
 
 class DateTimeParserFieldTests(TestCase):
