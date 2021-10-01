@@ -3,6 +3,7 @@ from django.db.models.fields import NOT_PROVIDED
 from django.forms import modelform_factory
 
 from .caches import SimpleDictCache
+from .fields import FlatRelatedField
 from .resultset import ImportResultSet
 
 
@@ -54,9 +55,13 @@ class ModelImporter:
             form=self.modelimportformclass,
             fields=fields,
         )
+        # Remove fields altogether if they haven't been specified in the import (makes sense for updates). #houseofcards..
         base_fields_to_del = set(klass.base_fields.keys()) - set(fields)
         for f in base_fields_to_del:
-            del klass.base_fields[f]
+            # NOTE: FlatRelatedFields already behave well for partial imports. Popping this top layer
+            # would cause updates to ignore them altogether..
+            if not isinstance(klass.base_fields[f], FlatRelatedField):
+                del klass.base_fields[f]
         return klass
 
     @transaction.atomic

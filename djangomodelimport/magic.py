@@ -41,7 +41,7 @@ class FlatRelatedFieldFormMixin:
                 for attr, value in mapped_values.items():
                     setattr(instance, attr, value)
 
-            instance.save()  # @todo this gets fired during preview :( this whole thing needs to go
+            instance.save()  # NOTE: This gets fired during preview, but that's ok, since we wrap previews in a big rollback transaction.
             self.data[field] = instance
 
     def get_headers(self, given_headers=None):
