@@ -12,7 +12,7 @@ class CachedInstanceLoader(dict):
         self.multifield = isinstance(to_field, list) or isinstance(to_field, tuple)
 
     def __getitem__(self, item):
-        # Attempted to get the currently cached value
+        # Attempt to get the currently cached value.
         value = super(CachedInstanceLoader, self).__getitem__(item)
 
         # If the cached value is an error, re-raise
@@ -30,9 +30,9 @@ class CachedInstanceLoader(dict):
         try:
             self[value] = inst = self.queryset.get(**params)
         except self.model.DoesNotExist as err:
-            self[value] = inst = err  # Further warnings will be re-raised
+            self[value] = err  # Further warnings will be re-raised
             raise
         except self.model.MultipleObjectsReturned as err:
-            self[value] = inst = err  # Further warnings will be re-raised
+            self[value] = err  # Further warnings will be re-raised
             raise
         return inst
