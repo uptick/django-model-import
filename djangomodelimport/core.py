@@ -106,6 +106,7 @@ class ModelImporter:
         created = updated = skipped = failed = 0
         for i, row in enumerate(rows, start=1):
             errors = []
+            warnings = []
             instance = None
             to_be_created = row.get('id', '') == ''  # If ID is blank we are creating a new row, otherwise we are updating
             to_be_updated = not to_be_created
@@ -136,6 +137,7 @@ class ModelImporter:
 
             if not errors:
                 form = import_form_class(row, caches=caches, instance=instance, author=author)
+                warnings = list(form._warnings.items())
                 if form.is_valid():
                     instance = form.save(commit=commit)
                     if to_be_created:
@@ -149,7 +151,7 @@ class ModelImporter:
             if not instance or not instance.pk:
                 failed += 1
 
-            result_row = importresult.append(i, row, errors, instance, to_be_created)
+            result_row = importresult.append(i, row, errors, instance, to_be_created, warnings)
             if progress_logger:
                 progress_logger(result_row)
 
