@@ -137,7 +137,6 @@ class ModelImporter:
 
             if not errors:
                 form = import_form_class(row, caches=caches, instance=instance, author=author)
-                warnings = list(form._warnings.items())
                 if form.is_valid():
                     instance = form.save(commit=commit)
                     if to_be_created:
@@ -147,6 +146,8 @@ class ModelImporter:
                 else:
                     # TODO: Filter out errors associated with FlatRelatedField
                     errors = list(form.errors.items())
+
+                warnings = list(form.warnings.items())
 
             if not instance or not instance.pk:
                 failed += 1

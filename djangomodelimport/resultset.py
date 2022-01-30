@@ -15,7 +15,10 @@ class ImportResultSet:
         self.header_form = header_form
 
     def __repr__(self):
-        return f"ImportResultSet ({len(self.results)} rows, {len(self.get_errors())} errors)"
+        i = len(self.results)
+        j = len(self.get_errors())
+        k = len(self.get_warnings())
+        return f"ImportResultSet ({i} rows, {j} errors, {k} warnings)"
 
     def append(self, index, row, errors, instance, created, warnings=None):
         result_row = ImportResultRow(
