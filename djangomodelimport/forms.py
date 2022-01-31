@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from django import forms
+from django.core.exceptions import NON_FIELD_ERRORS
 
 from .magic import CachedChoiceFieldFormMixin, FlatRelatedFieldFormMixin, JSONFieldFormMixin
 
@@ -18,7 +19,7 @@ class ImporterModelForm(JSONFieldFormMixin, FlatRelatedFieldFormMixin, CachedCho
     def add_warning(self, field: str, warning: str):
         # Mimic django form behaviour for errors
         if not field:
-            field = '__all__'
+            field = NON_FIELD_ERRORS
 
         self._warnings[field].append(warning)
 
