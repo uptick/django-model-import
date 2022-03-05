@@ -16,7 +16,7 @@ packages = [
 python = "^3.9"
 python-dateutil = "^2.7.0"
 tablib = "^3.0.0"
-Django = "^3.0.0"
+Django = ">=3.0.0, <5.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
