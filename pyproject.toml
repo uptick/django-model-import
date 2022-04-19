@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-model-import"
-version = "0.4.15"
+version = "0.4.17"
 description = "A Django library for importing CSVs and other structured data quickly using Django's ModelForm for validation and deserialisation into an instance."
 authors = ["Aidan Lister <aidan@uptickhq.com>"]
 readme = "README.md"
