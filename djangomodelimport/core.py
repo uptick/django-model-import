@@ -1,3 +1,4 @@
+import django.db.utils
 from django.db import transaction
 from django.db.models.fields import NOT_PROVIDED
 from django.forms import modelform_factory
@@ -138,19 +139,18 @@ class ModelImporter:
             if not errors:
                 form = import_form_class(row, caches=caches, instance=instance, author=author)
                 if form.is_valid():
-                    sub_sid = transaction.savepoint()
                     try:
-                        instance = form.save(commit=commit)
+                        with transaction.atomic():
+                            instance = form.save(commit=commit)
 
                         if to_be_created:
                             created += 1
                         if to_be_updated:
                             updated += 1
                     except Exception as err:
-                        transaction.savepoint_rollback(sub_sid)
                         errors = [repr(err)]
 
-                    transaction.savepoint_commit(sub_sid)
+
                 else:
                     # TODO: Filter out errors associated with FlatRelatedField
                     errors = list(form.errors.items())
