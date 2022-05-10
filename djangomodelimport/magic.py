@@ -64,9 +64,9 @@ class FlatRelatedFieldFormMixin:
                 # do something here
             else:
                 model_meta = self.Meta.model._meta
-                model_field = getattr(model_meta,field,None)
+                model_fields = {f.name:f for f in model_meta.fields}
 
-                if model_field:
+                if model_field := model_fields.get(field):
                     description.append(model_field.help_text)
                     name.append(model_field.verbose_name)
                 else:
