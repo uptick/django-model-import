@@ -53,6 +53,32 @@ class FlatRelatedFieldFormMixin:
                 headers.append(field)
         return headers
 
+    def get_header_summary(self):
+        headers = ['skip']
+        required = ['TRUE']
+        name = ['TRUE']
+        description = ['TRUE']
+        for field,fieldinstance in self.fields.items():
+            if isinstance(fieldinstance, FlatRelatedField):
+                pass
+                # do something here
+            else:
+                model_meta = self.Meta.model._meta
+                model_field = getattr(model_meta,field,None)
+
+                if model_field:
+                    description.append(model_field.help_text)
+                    name.append(model_field.verbose_name)
+                else:
+                    description.append('')
+                    name.append('')
+
+
+                headers.append(field)
+                required.append('required' if fieldinstance.required else '')
+
+        return [headers,required,name,description]
+
     def get_instance_values(self, instance, headers):
         instance_values = []
         for header in headers:
