@@ -72,7 +72,7 @@ class FlatRelatedFieldFormMixin:
                 related_fields = {f.name: f for f in related_meta.fields}
 
                 for k, v in fieldinstance.fields.items():
-                    if related_field := related_fields.get(k):
+                    if related_field := related_fields.get(v['to_field']):
                         description.append(related_field.help_text)
                         name.append(related_field.verbose_name)
                     else:
