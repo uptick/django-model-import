@@ -79,17 +79,26 @@ class FlatRelatedFieldFormMixin:
                     else:
                         description.append('')
                         name.append('')
+
+                    data_type.append('')
                     headers.append(k)
                     required.append('required' if v.get('required') else '')
             else:
-                if model_field := model_fields.get(field):
-                    description.append(model_field.help_text)
-                    name.append(model_field.verbose_name)
-                else:
-                    description.append('')
-                    name.append('')
+                field_desc = fieldinstance.help_text
+                field_name = fieldinstance.label
 
-                data_type.append(fieldinstance.widget.input_type)
+                if model_field := model_fields.get(field):
+                    field_desc = field_desc or model_field.help_text
+                    field_name = field_name or model_field.verbose_name
+
+                description.append(field_desc)
+                name.append(field_name)
+
+                try:
+                    data_type.append(fieldinstance.widget.input_type)
+                except AttributeError:
+                    data_type.append('text')
+
                 if isinstance(fieldinstance,ModelChoiceField):
                     data_type[-1] += f':{fieldinstance.to_field_name}'
 
