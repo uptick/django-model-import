@@ -1,5 +1,5 @@
 from django.core.exceptions import ValidationError
-from django.forms import FileField, ModelChoiceField
+from django.forms import FileField, ModelChoiceField, ModelMultipleChoiceField
 
 from .fields import CachedChoiceField, FlatRelatedField, JSONField, UseCacheMixin
 from .loaders import CachedInstanceLoader
@@ -99,7 +99,9 @@ class FlatRelatedFieldFormMixin:
                 except AttributeError:
                     data_type.append('text')
 
-                if isinstance(fieldinstance,ModelChoiceField):
+                if isinstance(fieldinstance,ModelMultipleChoiceField):
+                    data_type[-1] += f':new line separated {fieldinstance.to_field_name}'
+                elif isinstance(fieldinstance,ModelChoiceField):
                     data_type[-1] += f':{fieldinstance.to_field_name}'
 
                 headers.append(field)
