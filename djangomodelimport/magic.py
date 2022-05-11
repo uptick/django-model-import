@@ -54,18 +54,33 @@ class FlatRelatedFieldFormMixin:
         return headers
 
     def get_header_summary(self):
+        model_meta = self.Meta.model._meta
+        model_fields = {f.name:f for f in model_meta.fields}
+
+        sample = self.Meta.model.objects.order_by('?')[:3]
+
+        # Output rows
         headers = ['skip']
         required = ['TRUE']
         name = ['TRUE']
         description = ['TRUE']
-        for field,fieldinstance in self.fields.items():
-            if isinstance(fieldinstance, FlatRelatedField):
-                pass
-                # do something here
-            else:
-                model_meta = self.Meta.model._meta
-                model_fields = {f.name:f for f in model_meta.fields}
+        samples = []
 
+        for field, fieldinstance in self.fields.items():
+            if isinstance(fieldinstance, FlatRelatedField):
+                related_meta = fieldinstance.queryset.model._meta
+                related_fields = {f.name: f for f in related_meta.fields}
+
+                for k, v in fieldinstance.fields.items():
+                    if related_field := related_fields.get(k):
+                        description.append(related_field.help_text)
+                        name.append(related_field.verbose_name)
+                    else:
+                        description.append('')
+                        name.append('')
+                    headers.append(k)
+                    required.append('required' if v.get('required') else '')
+            else:
                 if model_field := model_fields.get(field):
                     description.append(model_field.help_text)
                     name.append(model_field.verbose_name)
