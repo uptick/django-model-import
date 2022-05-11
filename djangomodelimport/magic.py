@@ -1,5 +1,5 @@
 from django.core.exceptions import ValidationError
-from django.forms import FileField
+from django.forms import FileField, ModelChoiceField
 
 from .fields import CachedChoiceField, FlatRelatedField, JSONField, UseCacheMixin
 from .loaders import CachedInstanceLoader
@@ -63,6 +63,7 @@ class FlatRelatedFieldFormMixin:
         headers = ['skip']
         required = ['TRUE']
         name = ['TRUE']
+        data_type = ['TRUE']
         description = ['TRUE']
         samples = []
 
@@ -88,11 +89,14 @@ class FlatRelatedFieldFormMixin:
                     description.append('')
                     name.append('')
 
+                data_type.append(fieldinstance.widget.input_type)
+                if isinstance(fieldinstance,ModelChoiceField):
+                    data_type[-1] += f':{fieldinstance.to_field_name}'
 
                 headers.append(field)
                 required.append('required' if fieldinstance.required else '')
 
-        return [headers,required,name,description]
+        return [headers,required,data_type,name,description]
 
     def get_instance_values(self, instance, headers):
         instance_values = []
