@@ -1,8 +1,9 @@
 from django.core.exceptions import ValidationError
 from django.forms import FileField
 
-from .fields import CachedChoiceField, FlatRelatedField, JSONField, UseCacheMixin
+from .fields import CachedChoiceField, FlatRelatedField, JSONField, UseCacheMixin, SourceFieldSwitcher
 from .loaders import CachedInstanceLoader
+from .widgets import NamedSourceWidget, CompositeLookupWidget
 
 """ These mixins hold all the code that relates to our special fields (flat related, json, cached choice)
 that just doesn't work without access to the form instance. """
@@ -129,3 +130,23 @@ class JSONFieldFormMixin:
                     self.cleaned_data[name] = value
             except ValidationError as e:
                 self.add_error(name, e)
+
+
+class SourceFieldSwitcherMixin:
+    def __init__(self, data, *args, **kwargs):
+        """Swap out all `SourceFieldSwitcher` fields for actual fields."""
+        for field_name, field_class in self.__class__.base_fields.items():
+            if not isinstance(field_class, SourceFieldSwitcher):
+                continue
+            for actual_field in field_class.fields:
+                if isinstance(actual_field.widget, NamedSourceWidget):
+                    lookup = {actual_field.widget.source}
+                elif isinstance(actual_field.widget, CompositeLookupWidget):
+                    lookup = set(actual_field.widget.source)
+                else:
+                    lookup = {field_name}
+                if lookup < set(data.keys()):
+                    self.base_fields[field_name] = actual_field
+                    break
+
+        super().__init__(data=data, *args, **kwargs)

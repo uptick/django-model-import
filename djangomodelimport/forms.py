@@ -3,10 +3,16 @@ from collections import defaultdict
 from django import forms
 from django.core.exceptions import NON_FIELD_ERRORS
 
-from .magic import CachedChoiceFieldFormMixin, FlatRelatedFieldFormMixin, JSONFieldFormMixin
+from .magic import CachedChoiceFieldFormMixin, FlatRelatedFieldFormMixin, JSONFieldFormMixin, SourceFieldSwitcherMixin
 
 
-class ImporterModelForm(JSONFieldFormMixin, FlatRelatedFieldFormMixin, CachedChoiceFieldFormMixin, forms.ModelForm):
+class ImporterModelForm(
+    SourceFieldSwitcherMixin,
+    JSONFieldFormMixin,
+    FlatRelatedFieldFormMixin,
+    CachedChoiceFieldFormMixin,
+    forms.ModelForm
+):
     """ Extends the ModelForm to prime our caches and tweaks the validation
     routines to ensure we are not doing too many queries with our cached fields.
     """

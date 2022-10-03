@@ -179,3 +179,11 @@ class JSONField(forms.Field):
         if value and not isinstance(value, str):
             value = json.dumps(value, sort_keys=True, indent=4)
         return super().render(name, value, attrs)
+
+
+class SourceFieldSwitcher(forms.Field):
+    fields = None
+
+    def __init__(self, *fields):
+        self.fields = fields
+        super().__init__()
