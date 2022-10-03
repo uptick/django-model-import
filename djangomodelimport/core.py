@@ -1,11 +1,8 @@
-import django.db.utils
 from django.db import transaction
-from django.db.models.fields import NOT_PROVIDED
-from django.forms import modelform_factory
 
 from .caches import SimpleDictCache
-from .fields import FlatRelatedField
 from .resultset import ImportResultSet
+from .formclassbuilder import FormClassBuilder
 
 
 class ModelImporter:
@@ -23,47 +20,6 @@ class ModelImporter:
 
     def get_for_update(self, pk):
         return self.update_cache[pk] if self.update_cache else self.update_queryset.get(pk=pk)
-
-    def get_valid_fields(self, headers):
-        """ Return a list of valid fields for this importer, in the order they
-        appear in the input file.
-        """
-        valid_present_fields = [field for field in headers if field in self.modelimportformclass.base_fields]
-        virtual_fields = getattr(self.modelimportformclass.Meta, 'virtual_fields', [])  # See https://github.com/uptick/django-model-import/issues/9
-        return valid_present_fields + list(virtual_fields)
-
-    def get_required_fields(self):
-        fields = self.model._meta.get_fields()
-        required_fields = []
-
-        # Required means `blank` is False and `editable` is True.
-        for f in fields:
-            # Note - if the field doesn't have a `blank` attribute it is probably
-            # a ManyToOne relation (reverse foreign key), which you probably want to ignore.
-            if getattr(f, 'blank', True) is False and getattr(f, 'editable', True) is True and f.default is NOT_PROVIDED:
-                required_fields.append(f.name)
-        return required_fields
-
-    def get_modelimport_form_class(self, fields):
-        """ Return a modelform for use with this data.
-
-        We use a modelform_factory to dynamically limit the fields on the import,
-        otherwise the absence of a value can be taken as false for boolean fields,
-        where as we want the model's default value to kick in.
-        """
-        klass = modelform_factory(
-            self.model,
-            form=self.modelimportformclass,
-            fields=fields,
-        )
-        # Remove fields altogether if they haven't been specified in the import (makes sense for updates). #houseofcards..
-        base_fields_to_del = set(klass.base_fields.keys()) - set(fields)
-        for f in base_fields_to_del:
-            # NOTE: FlatRelatedFields already behave well for partial imports. Popping this top layer
-            # would cause updates to ignore them altogether..
-            if not isinstance(klass.base_fields[f], FlatRelatedField):
-                del klass.base_fields[f]
-        return klass
 
     @transaction.atomic
     def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None, author=None, progress_logger=None, skip_func=None, resultset_cls=ImportResultSet):
@@ -86,19 +42,17 @@ class ModelImporter:
                 for obj in self.update_queryset:
                     self.update_cache[str(obj.id)] = obj
 
-        valid_fields = self.get_valid_fields(headers)
+        formclassbuilder = FormClassBuilder(self.modelimportformclass, headers)
 
-        # Create a Form (using modelform_factory) for rows where we are doing an UPDATE
-        ModelUpdateForm = self.get_modelimport_form_class(fields=valid_fields)
+        # Create a Form for rows where we are doing an UPDATE (required fields only relevant if attempting to wipe them).
+        ModelUpdateForm = formclassbuilder.build_update_form()
 
-        # Create a Form for rows where doing an INSERT, make sure to include the required fields
-        # Combine valid & required fields; preserving order of valid fields.
-        form_fields = valid_fields + list(set(self.get_required_fields()) - set(valid_fields))
-        ModelImportForm = self.get_modelimport_form_class(fields=form_fields)
+        # Create a Form for rows where doing an INSERT (includes required fields).
+        ModelCreateForm = formclassbuilder.build_create_form()
 
         # Create form to pass context to the ImportResultSet
         # TODO: evaluate this, only added because of FlatRelatedField
-        header_form = ModelImportForm(data={}, caches={}, author=author)
+        header_form = ModelCreateForm(data={}, caches={}, author=author)
         importresult = resultset_cls(headers=headers, header_form=header_form)
 
         sid = transaction.savepoint()
@@ -112,7 +66,7 @@ class ModelImporter:
             to_be_created = row.get('id', '') == ''  # If ID is blank we are creating a new row, otherwise we are updating
             to_be_updated = not to_be_created
             to_be_skipped = skip_func(row) if skip_func else False
-            import_form_class = ModelImportForm if to_be_created else ModelUpdateForm
+            import_form_class = ModelCreateForm if to_be_created else ModelUpdateForm
 
             if to_be_created and not allow_insert:
                 errors = [('id', ['Creating new rows is not permitted'])]

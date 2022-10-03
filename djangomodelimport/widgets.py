@@ -48,6 +48,18 @@ class CompositeLookupWidget(forms.Widget):
                 return True
         return False
 
+class NamedSourceWidget(forms.Widget):
+    """This lets you override the column from which to import data."""
+
+    def __init__(self, source, *args, **kwargs):
+        self.source = source
+        super().__init__(*args, **kwargs)
+
+    def value_from_datadict(self, data, files, name):
+        return data.get(self.source, "")
+
+    def value_omitted_from_data(self, data, files, name):
+        return self.source not in data
 
 class JSONFieldWidget(forms.Widget):
     template_name = 'django/forms/widgets/textarea.html'
