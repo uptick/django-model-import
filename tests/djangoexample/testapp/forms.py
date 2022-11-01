@@ -15,8 +15,8 @@ class CitationForm(forms.ModelForm):
 
     class Meta:
         fields = [
-            'name',
-            'author',
-            'metadata',
+            "name",
+            "author",
+            "metadata",
         ]
         model = Citation

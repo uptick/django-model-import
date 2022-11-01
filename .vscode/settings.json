@@ -1,0 +1,30 @@
+{
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
+  "indentRainbow.colors": [
+    "rgba(87, 106, 130, 0.05)",
+    "rgba(87, 106, 130, 0.1)"
+  ],
+  "emmet.includeLanguages": {
+    "django-html": "html"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "python.formatting.provider": "black",
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.python",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": true
+    }
+  },
+  "python.testing.cwd": "server/src",
+  "python.testing.pytestEnabled": true,
+  "window.autoDetectColorScheme": true,
+  "editor.padding.bottom": 200,
+  "editor.scrollBeyondLastLine": false,
+  "editor.formatOnSave": true,
+  "[django-html]": {
+    "editor.formatOnSave": false
+  }
+}

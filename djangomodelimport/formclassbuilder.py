@@ -4,10 +4,12 @@ from django.db.models.fields import NOT_PROVIDED
 from django.forms import modelform_factory
 
 from .fields import FlatRelatedField, JSONField, SourceFieldSwitcher
-from .widgets import NamedSourceWidget, CompositeLookupWidget
+from .widgets import CompositeLookupWidget, NamedSourceWidget
+
 
 class FormClassBuilder:
     """Constructs instances of ImporterModelForm, taking headers into account."""
+
     def __init__(self, modelimportformclass, headers):
         self.headers = headers
         self.modelimportformclass = modelimportformclass
@@ -18,16 +20,22 @@ class FormClassBuilder:
 
     def build_create_form(self):
         # Combine valid & required fields; preserving order of valid fields.
-        form_fields = self.valid_fields + list(set(self.required_fields) - set(self.valid_fields))
+        form_fields = self.valid_fields + list(
+            set(self.required_fields) - set(self.valid_fields)
+        )
         return self._get_modelimport_form_class(fields=form_fields)
 
     @cached_property
     def valid_fields(self):
-        """ Using the provided headers, prepare a list of valid fields for this importer.
-            Preserves field ordering as defined by the headers.
+        """Using the provided headers, prepare a list of valid fields for this importer.
+        Preserves field ordering as defined by the headers.
         """
         # 1) Determine which of the provided import headers are legitimate by comparing directly against the form fields.
-        valid_present_fields = [field for field in self.headers if field in self.modelimportformclass.base_fields]
+        valid_present_fields = [
+            field
+            for field in self.headers
+            if field in self.modelimportformclass.base_fields
+        ]
         # 2) Add virtual fields:
         # - FlatRelatedField: these are a collection of other columns that build a relation on the fly. Always add.
         # - JSONField: these are provided as FIELDNAME__SOME_DATA, so won't match directly. Just let the whole thing through.
@@ -55,7 +63,9 @@ class FormClassBuilder:
                         if set(field_class.widget.source) < header_set:
                             virtual_fields.append(field_name)
 
-        return valid_present_fields + list(set(virtual_fields) - set(valid_present_fields))
+        return valid_present_fields + list(
+            set(virtual_fields) - set(valid_present_fields)
+        )
 
     @cached_property
     def required_fields(self):
@@ -66,12 +76,16 @@ class FormClassBuilder:
         for f in fields:
             # Note - if the field doesn't have a `blank` attribute it is probably
             # a ManyToOne relation (reverse foreign key), which you probably want to ignore.
-            if getattr(f, 'blank', True) is False and getattr(f, 'editable', True) is True and f.default is NOT_PROVIDED:
+            if (
+                getattr(f, "blank", True) is False
+                and getattr(f, "editable", True) is True
+                and f.default is NOT_PROVIDED
+            ):
                 required_fields.append(f.name)
         return required_fields
 
     def _get_modelimport_form_class(self, fields):
-        """ Return a modelform for use with this data.
+        """Return a modelform for use with this data.
 
         We use a modelform_factory to dynamically limit the fields on the import,
         otherwise the absence of a value can be taken as false for boolean fields,

@@ -4,9 +4,10 @@ from django import forms
 
 
 class DisplayChoiceWidget(forms.Widget):
-    """ This widget is helpful when the value being uploaded by the customer is the
+    """This widget is helpful when the value being uploaded by the customer is the
     display choice, not the value. This widget will map the display choice back to the value.
     """
+
     choices = None
     display_to_choice_map = None
 
@@ -48,6 +49,7 @@ class CompositeLookupWidget(forms.Widget):
                 return True
         return False
 
+
 class NamedSourceWidget(forms.Widget):
     """This lets you override the column from which to import data."""
 
@@ -61,11 +63,12 @@ class NamedSourceWidget(forms.Widget):
     def value_omitted_from_data(self, data, files, name):
         return self.source not in data
 
+
 class JSONFieldWidget(forms.Widget):
-    template_name = 'django/forms/widgets/textarea.html'
+    template_name = "django/forms/widgets/textarea.html"
 
     def render(self, name, value, attrs=None, renderer=None):
-        return ''
+        return ""
 
     def value_omitted_from_data(self, data, files, name):
         return not any([key.startswith(name) for key in data.keys()])
@@ -74,6 +77,6 @@ class JSONFieldWidget(forms.Widget):
         extra_fields = {}
         for f in data.keys():
             if f.startswith(name):
-                new_field = f[len(name) + 1:]
+                new_field = f[len(name) + 1 :]
                 extra_fields[new_field] = data[f]
         return extra_fields
