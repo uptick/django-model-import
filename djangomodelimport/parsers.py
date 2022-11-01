@@ -1,6 +1,6 @@
 class BaseImportParser:
     def __init__(self, modelvalidator):
-        """ We provide the modelvalidator to get some Meta information about
+        """We provide the modelvalidator to get some Meta information about
         valid fields, and any soft headings.
         """
         self.modelvalidator = modelvalidator
@@ -14,17 +14,19 @@ class BaseImportParser:
         #   'type': ['Asset Type'],
         # }
         header_map = {}
-        if hasattr(self.modelvalidator, 'ImporterMeta'):
-            if hasattr(self.modelvalidator.ImporterMeta, 'soft_headings'):
+        if hasattr(self.modelvalidator, "ImporterMeta"):
+            if hasattr(self.modelvalidator.ImporterMeta, "soft_headings"):
                 importer_softheadings = self.modelvalidator.ImporterMeta.soft_headings
 
                 for renameto in importer_softheadings:  # new column name
-                    for renamefrom in importer_softheadings[renameto]:  # old column name
+                    for renamefrom in importer_softheadings[
+                        renameto
+                    ]:  # old column name
                         header_map[renamefrom.lower()] = renameto.lower()
         return header_map
 
     def parse(self, data):
-        """ Parsers should return a tuple containing (headings, data)
+        """Parsers should return a tuple containing (headings, data)
 
         They should also take a dictionary of soft_headings which map
         similar names to actual headings.
@@ -36,6 +38,7 @@ class TablibBaseImportParser(BaseImportParser):
     def __init__(self, *args, **kwargs):
         # Inline import, so tablib is only grabbed if/when this Parser is instanciated.
         from tablib import Dataset
+
         self.dataset_class = Dataset
         super().__init__(*args, **kwargs)
 
@@ -48,7 +51,9 @@ class TablibCSVImportParser(TablibBaseImportParser):
         header_map = self.get_soft_headings()
 
         # Make all our headings lowercase and sub in soft headings
-        for col_id, header in enumerate(dataset.headers):  # replace it in headers if found
+        for col_id, header in enumerate(
+            dataset.headers
+        ):  # replace it in headers if found
             header_name = header.strip().lower()
             dataset.headers[col_id] = header_name
             if header_name in header_map.keys():

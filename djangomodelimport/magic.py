@@ -1,9 +1,15 @@
 from django.core.exceptions import ValidationError
 from django.forms import FileField
 
-from .fields import CachedChoiceField, FlatRelatedField, JSONField, UseCacheMixin, SourceFieldSwitcher
+from .fields import (
+    CachedChoiceField,
+    FlatRelatedField,
+    JSONField,
+    SourceFieldSwitcher,
+    UseCacheMixin,
+)
 from .loaders import CachedInstanceLoader
-from .widgets import NamedSourceWidget, CompositeLookupWidget
+from .widgets import CompositeLookupWidget, NamedSourceWidget
 
 """ These mixins hold all the code that relates to our special fields (flat related, json, cached choice)
 that just doesn't work without access to the form instance. """
@@ -33,9 +39,11 @@ class FlatRelatedFieldFormMixin:
         self.data = new_data
 
         for field, values in flat_related.items():
-            mapped_values = dict((self.fields[field].fields[k]['to_field'], v) for k, v in values.items())
+            mapped_values = dict(
+                (self.fields[field].fields[k]["to_field"], v) for k, v in values.items()
+            )
             # Get or create the related instance.
-            if getattr(self.instance, field + '_id') is None:
+            if getattr(self.instance, field + "_id") is None:
                 instance = self.fields[field].model(**mapped_values)
             else:
                 instance = getattr(self.instance, field)
@@ -49,7 +57,11 @@ class FlatRelatedFieldFormMixin:
         headers = []
         for field, fieldinstance in self.fields.items():
             if isinstance(fieldinstance, FlatRelatedField):
-                headers.extend(f for f in fieldinstance.fields.keys() if given_headers is None or f in given_headers)
+                headers.extend(
+                    f
+                    for f in fieldinstance.fields.keys()
+                    if given_headers is None or f in given_headers
+                )
             else:
                 headers.append(field)
         return headers
@@ -60,14 +72,20 @@ class FlatRelatedFieldFormMixin:
             if header in self.flat_related_mapping:
                 rel_field_name = self.flat_related_mapping[header]
                 rel = getattr(instance, rel_field_name)
-                instance_values.append(getattr(rel, self.fields[rel_field_name].fields[header]['to_field']))
+                instance_values.append(
+                    getattr(rel, self.fields[rel_field_name].fields[header]["to_field"])
+                )
             else:
                 try:
                     instance_values.append(getattr(instance, header))
                 except ValueError:
-                    instance_values.append('')  # trying to access an m2m is not allowed before it has been saved
+                    instance_values.append(
+                        ""
+                    )  # trying to access an m2m is not allowed before it has been saved
                 except AttributeError:
-                    instance_values.append('')  # trying to access a field that doesn't exist on the model definition, should we check for the field in _meta.exclude?
+                    instance_values.append(
+                        ""
+                    )  # trying to access a field that doesn't exist on the model definition, should we check for the field in _meta.exclude?
         return instance_values
 
     # TODO:
@@ -88,11 +106,13 @@ class CachedChoiceFieldFormMixin:
             # For each CachedInstanceLoader, prime the cache.
             if isinstance(fieldinstance, UseCacheMixin):
                 if field not in self.caches:
-                    self.caches[field] = CachedInstanceLoader(fieldinstance.queryset, fieldinstance.to_field)
+                    self.caches[field] = CachedInstanceLoader(
+                        fieldinstance.queryset, fieldinstance.to_field
+                    )
                 fieldinstance.set_cache(self.caches[field])
 
     def _get_validation_exclusions(self):
-        """ We need to exclude any CachedChoiceFields from validation, as this
+        """We need to exclude any CachedChoiceFields from validation, as this
         causes a m * n queries where m is the number of relations, n is rows.
         """
         exclude = []
@@ -111,7 +131,9 @@ class JSONFieldFormMixin:
             if field.disabled:
                 value = self.get_initial_for_field(field, name)
             else:
-                value = field.widget.value_from_datadict(self.data, self.files, self.add_prefix(name))
+                value = field.widget.value_from_datadict(
+                    self.data, self.files, self.add_prefix(name)
+                )
             try:
                 if isinstance(field, FileField):
                     initial = self.get_initial_for_field(field, name)
@@ -125,8 +147,8 @@ class JSONFieldFormMixin:
                 else:
                     value = field.clean(value)
                 self.cleaned_data[name] = value
-                if hasattr(self, 'clean_%s' % name):
-                    value = getattr(self, 'clean_%s' % name)()
+                if hasattr(self, "clean_%s" % name):
+                    value = getattr(self, "clean_%s" % name)()
                     self.cleaned_data[name] = value
             except ValidationError as e:
                 self.add_error(name, e)

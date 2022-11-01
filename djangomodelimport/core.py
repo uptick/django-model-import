@@ -1,12 +1,13 @@
 from django.db import transaction
 
 from .caches import SimpleDictCache
-from .resultset import ImportResultSet
 from .formclassbuilder import FormClassBuilder
+from .resultset import ImportResultSet
 
 
 class ModelImporter:
-    """ A base class which parses and processes a CSV import, and handles the priming of any required caches. """
+    """A base class which parses and processes a CSV import, and handles the priming of any required caches."""
+
     def __init__(self, modelimportformclass):
         """
         @param modelimportformclass The ImporterModelForm class (which extends a simple ModelForm)
@@ -19,11 +20,27 @@ class ModelImporter:
         self.update_queryset = None
 
     def get_for_update(self, pk):
-        return self.update_cache[pk] if self.update_cache else self.update_queryset.get(pk=pk)
+        return (
+            self.update_cache[pk]
+            if self.update_cache
+            else self.update_queryset.get(pk=pk)
+        )
 
     @transaction.atomic
-    def process(self, headers, rows, commit=False, allow_update=True, allow_insert=True, limit_to_queryset=None, author=None, progress_logger=None, skip_func=None, resultset_cls=ImportResultSet):
-        """ Process the data.
+    def process(
+        self,
+        headers,
+        rows,
+        commit=False,
+        allow_update=True,
+        allow_insert=True,
+        limit_to_queryset=None,
+        author=None,
+        progress_logger=None,
+        skip_func=None,
+        resultset_cls=ImportResultSet,
+    ):
+        """Process the data.
 
         @param limit_to_queryset A queryset which limits the instances which can be updated, and creates a cache of the
             updatable records to improve update performance.
@@ -33,7 +50,11 @@ class ModelImporter:
 
         # Set up an "update" cache to preload any objects which might be updated
         if allow_update:
-            self.update_queryset = limit_to_queryset if limit_to_queryset is not None else self.model.objects.all()
+            self.update_queryset = (
+                limit_to_queryset
+                if limit_to_queryset is not None
+                else self.model.objects.all()
+            )
             # We only build the update_cache if limit_to_queryset is provided, with the assumption that the dataset
             # is then not too big. This may not be a valid assumption.
             # @todo Could we be smarter about the update cache, e.g. iterate through the source row PKs
@@ -63,35 +84,53 @@ class ModelImporter:
             errors = []
             warnings = []
             instance = None
-            to_be_created = row.get('id', '') == ''  # If ID is blank we are creating a new row, otherwise we are updating
+            to_be_created = (
+                row.get("id", "") == ""
+            )  # If ID is blank we are creating a new row, otherwise we are updating
             to_be_updated = not to_be_created
             to_be_skipped = skip_func(row) if skip_func else False
             import_form_class = ModelCreateForm if to_be_created else ModelUpdateForm
 
             if to_be_created and not allow_insert:
-                errors = [('id', ['Creating new rows is not permitted'])]
+                errors = [("id", ["Creating new rows is not permitted"])]
                 importresult.append(i, row, errors, instance, to_be_created)
                 continue
 
             if to_be_updated and not allow_update:
-                errors = [('id', ['Updating existing rows is not permitted'])]
+                errors = [("id", ["Updating existing rows is not permitted"])]
                 importresult.append(i, row, errors, instance, to_be_created)
                 continue
 
             if to_be_updated:
                 try:
-                    instance = self.get_for_update(row['id'])
+                    instance = self.get_for_update(row["id"])
                 except self.model.DoesNotExist:
-                    errors = [('id', [f'{self.model._meta.verbose_name.title()} {row["id"]} does not exist.'])]
+                    errors = [
+                        (
+                            "id",
+                            [
+                                f'{self.model._meta.verbose_name.title()} {row["id"]} does not exist.'
+                            ],
+                        )
+                    ]
                 except KeyError:
-                    errors = [('id', [f'{self.model._meta.verbose_name.title()} {row["id"]} cannot be updated.'])]
+                    errors = [
+                        (
+                            "id",
+                            [
+                                f'{self.model._meta.verbose_name.title()} {row["id"]} cannot be updated.'
+                            ],
+                        )
+                    ]
 
             if to_be_skipped:
                 skipped += 1
                 continue
 
             if not errors:
-                form = import_form_class(row, caches=caches, instance=instance, author=author)
+                form = import_form_class(
+                    row, caches=caches, instance=instance, author=author
+                )
                 if form.is_valid():
                     try:
                         with transaction.atomic():
@@ -104,7 +143,6 @@ class ModelImporter:
                     except Exception as err:
                         errors = [repr(err)]
 
-
                 else:
                     # TODO: Filter out errors associated with FlatRelatedField
                     errors = list(form.errors.items())
@@ -114,7 +152,9 @@ class ModelImporter:
             if not instance or not instance.pk or errors:
                 failed += 1
 
-            result_row = importresult.append(i, row, errors, instance, to_be_created, warnings)
+            result_row = importresult.append(
+                i, row, errors, instance, to_be_created, warnings
+            )
             if progress_logger:
                 progress_logger(result_row)
 
@@ -123,5 +163,7 @@ class ModelImporter:
         else:
             transaction.savepoint_rollback(sid)
 
-        importresult.set_counts(created=created, updated=updated, skipped=skipped, failed=failed)
+        importresult.set_counts(
+            created=created, updated=updated, skipped=skipped, failed=failed
+        )
         return importresult

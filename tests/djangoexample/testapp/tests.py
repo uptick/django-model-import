@@ -1,5 +1,11 @@
 import datetime
-from testapp.importers import BookImporter, BookImporterWithCache, CitationImporter, CompanyImporter
+
+from testapp.importers import (
+    BookImporter,
+    BookImporterWithCache,
+    CitationImporter,
+    CompanyImporter,
+)
 from testapp.models import Author, Book, Citation, Company, Contact
 
 from django.test import TestCase
@@ -60,8 +66,8 @@ class ImporterTests(TestCase):
         pass
 
     def test_importer(self):
-        Author.objects.create(name='Aidan Lister')
-        Author.objects.create(name='Bill')
+        Author.objects.create(name="Aidan Lister")
+        Author.objects.create(name="Bill")
 
         parser = TablibCSVImportParser(BookImporter)
         headers, rows = parser.parse(sample_csv_1_books)
@@ -78,7 +84,7 @@ class ImporterTests(TestCase):
 
         # Make sure we get two rows
         self.assertEqual(len(res), 2)
-        self.assertEqual(res[0].instance.author.name, 'Aidan Lister')
+        self.assertEqual(res[0].instance.author.name, "Aidan Lister")
 
     def test_importer_no_insert(self):
         parser = TablibCSVImportParser(BookImporter)
@@ -90,52 +96,68 @@ class ImporterTests(TestCase):
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 2)
-        self.assertEqual(errors[0], (1, [('id', ['Creating new rows is not permitted'])]))
+        self.assertEqual(
+            errors[0], (1, [("id", ["Creating new rows is not permitted"])])
+        )
 
     def test_importer_no_update(self):
-        a1 = Author.objects.create(name='Aidan Lister')
-        a2 = Author.objects.create(name='Bill')
+        a1 = Author.objects.create(name="Aidan Lister")
+        a2 = Author.objects.create(name="Bill")
 
-        Book.objects.create(id=111, name='Hello', author=a1)
-        Book.objects.create(id=333, name='Goodbye', author=a2)
+        Book.objects.create(id=111, name="Hello", author=a1)
+        Book.objects.create(id=333, name="Goodbye", author=a2)
 
         parser = TablibCSVImportParser(BookImporter)
         headers, rows = parser.parse(sample_csv_2_books)
 
         importer = ModelImporter(BookImporter)
-        preview = importer.process(headers, rows, allow_update=False, limit_to_queryset=Book.objects.all(), commit=False)
+        preview = importer.process(
+            headers,
+            rows,
+            allow_update=False,
+            limit_to_queryset=Book.objects.all(),
+            commit=False,
+        )
 
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 2)
-        self.assertEqual(errors[0], (1, [('id', ['Updating existing rows is not permitted'])]))
+        self.assertEqual(
+            errors[0], (1, [("id", ["Updating existing rows is not permitted"])])
+        )
 
     def test_importer_limited_queryset(self):
-        a1 = Author.objects.create(name='Author Joe')
-        a2 = Author.objects.create(name='Author Bill')
+        a1 = Author.objects.create(name="Author Joe")
+        a2 = Author.objects.create(name="Author Bill")
 
-        b1 = Book.objects.create(id=111, name='Hello', author=a1)
-        Book.objects.create(id=333, name='Goodbye', author=a2)
+        b1 = Book.objects.create(id=111, name="Hello", author=a1)
+        Book.objects.create(id=333, name="Goodbye", author=a2)
 
         parser = TablibCSVImportParser(BookImporter)
         headers, rows = parser.parse(sample_csv_2_books)
 
         importer = ModelImporter(BookImporter)
-        preview = importer.process(headers, rows, allow_update=True, limit_to_queryset=Book.objects.filter(id=b1.id), commit=False)
+        preview = importer.process(
+            headers,
+            rows,
+            allow_update=True,
+            limit_to_queryset=Book.objects.filter(id=b1.id),
+            commit=False,
+        )
 
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0], (2, [('id', ['Book 333 cannot be updated.'])]))
+        self.assertEqual(errors[0], (2, [("id", ["Book 333 cannot be updated."])]))
 
     def test_required_fields_on_update(self):
-        a1 = Author.objects.create(name='Aidan Lister')
-        a2 = Author.objects.create(name='Maddi T')
+        a1 = Author.objects.create(name="Aidan Lister")
+        a2 = Author.objects.create(name="Maddi T")
 
-        b1 = Book.objects.create(id=801, name='Hello b1', author=a1)
-        Book.objects.create(id=802, name='Hello b2', author=a1)
-        Book.objects.create(id=803, name='Hello b3', author=a2)
-        b4 = Book.objects.create(id=804, name='Hello b4', author=a2)
+        b1 = Book.objects.create(id=801, name="Hello b1", author=a1)
+        Book.objects.create(id=802, name="Hello b2", author=a1)
+        Book.objects.create(id=803, name="Hello b3", author=a2)
+        b4 = Book.objects.create(id=804, name="Hello b4", author=a2)
 
         parser = TablibCSVImportParser(BookImporter)
         headers, rows = parser.parse(sample_csv_8_books)
@@ -150,18 +172,24 @@ class ImporterTests(TestCase):
         # Check we updated properly
         b1.refresh_from_db()
         b4.refresh_from_db()
-        self.assertEqual(b1.name, 'How to be fine')
-        self.assertEqual(b1.author.name, 'Aidan Lister')
-        self.assertEqual(b4.name, 'How to be awesome')
-        self.assertEqual(b4.author.name, 'Maddi T')
+        self.assertEqual(b1.name, "How to be fine")
+        self.assertEqual(b1.author.name, "Aidan Lister")
+        self.assertEqual(b4.name, "How to be awesome")
+        self.assertEqual(b4.author.name, "Maddi T")
 
     def test_skip_function(self):
-        Author.objects.create(name='Aidan Lister')
+        Author.objects.create(name="Aidan Lister")
         parser = TablibCSVImportParser(BookImporter)
         headers, rows = parser.parse(sample_csv_9_books)
 
         importer = ModelImporter(BookImporter)
-        res = importer.process(headers, rows, allow_update=True, commit=True, skip_func=lambda row: row.get('skip') == 'true')
+        res = importer.process(
+            headers,
+            rows,
+            allow_update=True,
+            commit=True,
+            skip_func=lambda row: row.get("skip") == "true",
+        )
 
         # Make sure there's no errors
         errors = res.get_errors()
@@ -177,8 +205,8 @@ class CachedChoiceFieldTests(TestCase):
         pass
 
     def test_import(self):
-        Author.objects.create(name='Aidan Lister')
-        Author.objects.create(name='Bill')
+        Author.objects.create(name="Aidan Lister")
+        Author.objects.create(name="Bill")
 
         parser = TablibCSVImportParser(BookImporterWithCache)
         headers, rows = parser.parse(sample_csv_5_books)
@@ -211,7 +239,7 @@ class CachedChoiceFieldTests(TestCase):
 
         # Make sure we get two rows
         self.assertEqual(len(res), 7)
-        self.assertEqual(res[0].instance.author.name, 'Aidan Lister')
+        self.assertEqual(res[0].instance.author.name, "Aidan Lister")
 
 
 class JSONFieldTests(TestCase):
@@ -234,7 +262,7 @@ class JSONFieldTests(TestCase):
         res = importresult.get_results()
 
         # Make sure we get two rows
-        expected_json = {'isbn': 'ISBN333', 'doi': 'doi:111'}
+        expected_json = {"isbn": "ISBN333", "doi": "doi:111"}
         self.assertEqual(len(res), 2)
         self.assertEqual(res[0].instance.metadata, expected_json)
 
@@ -247,7 +275,7 @@ class JSONFieldTests(TestCase):
         c1 = Citation.objects.create(
             id=10,
             author=author,
-            name='Diff1',
+            name="Diff1",
             metadata={
                 "doi": "some doi",
                 "isbn": "hello",
@@ -256,7 +284,7 @@ class JSONFieldTests(TestCase):
         c2 = Citation.objects.create(
             id=20,
             author=author,
-            name='Diff2',
+            name="Diff2",
             metadata={
                 "doi": "another doi",
                 "isbn": "mate",
@@ -312,16 +340,22 @@ class FlatRelatedFieldTests(TestCase):
         self.assertEqual(errors, [])
 
         org = Company.objects.all().first()
-        self.assertEqual(org.name, 'Microsoft')
-        self.assertEqual(org.primary_contact.name, 'Aidan')
+        self.assertEqual(org.name, "Microsoft")
+        self.assertEqual(org.primary_contact.name, "Aidan")
 
     def test_update(self):
-        contact = Contact.objects.create(name='Tapir', email='ziggur@t.com', mobile='5317707')
-        company = Company.objects.create(name='Okapi', primary_contact=contact)
+        contact = Contact.objects.create(
+            name="Tapir", email="ziggur@t.com", mobile="5317707"
+        )
+        company = Company.objects.create(name="Okapi", primary_contact=contact)
 
-        headers = ['id', 'contact_name', 'email']
+        headers = ["id", "contact_name", "email"]
         rows = [
-            {'id': company.id, 'contact_name': 'Foo Fighter Client', 'email': 'b@rrow.com'},
+            {
+                "id": company.id,
+                "contact_name": "Foo Fighter Client",
+                "email": "b@rrow.com",
+            },
         ]
 
         importer = ModelImporter(CompanyImporter)
@@ -332,9 +366,11 @@ class FlatRelatedFieldTests(TestCase):
         self.assertEqual(errors, [])
 
         company.refresh_from_db()
-        self.assertEqual(company.primary_contact.name, 'Foo Fighter Client')
-        self.assertEqual(company.primary_contact.email, 'b@rrow.com')
-        self.assertEqual(company.primary_contact.mobile, '5317707')  # This one should've stayed the same.
+        self.assertEqual(company.primary_contact.name, "Foo Fighter Client")
+        self.assertEqual(company.primary_contact.email, "b@rrow.com")
+        self.assertEqual(
+            company.primary_contact.mobile, "5317707"
+        )  # This one should've stayed the same.
 
 
 class DateTimeParserFieldTests(TestCase):
@@ -343,16 +379,34 @@ class DateTimeParserFieldTests(TestCase):
         self.medtf = DateTimeParserField(middle_endian=True)
 
     def test_little_endian_parsing(self):
-        self.assertEqual(self.ledtf.to_python('01/02/03'), datetime.datetime(2003, 2, 1, 0, 0))
-        self.assertEqual(self.ledtf.to_python('01/02/2003'), datetime.datetime(2003, 2, 1, 0, 0))
+        self.assertEqual(
+            self.ledtf.to_python("01/02/03"), datetime.datetime(2003, 2, 1, 0, 0)
+        )
+        self.assertEqual(
+            self.ledtf.to_python("01/02/2003"), datetime.datetime(2003, 2, 1, 0, 0)
+        )
 
     def test_middle_endian_parsing(self):
-        self.assertEqual(self.medtf.to_python('01/02/03'), datetime.datetime(2003, 1, 2, 0, 0))
-        self.assertEqual(self.medtf.to_python('01/02/2003'), datetime.datetime(2003, 1, 2, 0, 0))
+        self.assertEqual(
+            self.medtf.to_python("01/02/03"), datetime.datetime(2003, 1, 2, 0, 0)
+        )
+        self.assertEqual(
+            self.medtf.to_python("01/02/2003"), datetime.datetime(2003, 1, 2, 0, 0)
+        )
 
     def test_big_endian_parsing(self):
-        self.assertEqual(self.ledtf.to_python('2001/02/03'), datetime.datetime(2001, 2, 3, 0, 0))
-        self.assertEqual(self.medtf.to_python('2001/02/03'), datetime.datetime(2001, 2, 3, 0, 0))
+        self.assertEqual(
+            self.ledtf.to_python("2001/02/03"), datetime.datetime(2001, 2, 3, 0, 0)
+        )
+        self.assertEqual(
+            self.medtf.to_python("2001/02/03"), datetime.datetime(2001, 2, 3, 0, 0)
+        )
 
-        self.assertEqual(self.ledtf.to_python('2018-02-12 17:06:46'), datetime.datetime(2018, 2, 12, 17, 6, 46))
-        self.assertEqual(self.medtf.to_python('2018-02-12 17:06:46'), datetime.datetime(2018, 2, 12, 17, 6, 46))
+        self.assertEqual(
+            self.ledtf.to_python("2018-02-12 17:06:46"),
+            datetime.datetime(2018, 2, 12, 17, 6, 46),
+        )
+        self.assertEqual(
+            self.medtf.to_python("2018-02-12 17:06:46"),
+            datetime.datetime(2018, 2, 12, 17, 6, 46),
+        )
