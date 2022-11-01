@@ -3,9 +3,8 @@ from functools import cached_property
 from django.db.models.fields import NOT_PROVIDED
 from django.forms import modelform_factory
 
-from djangomodelimport.widgets import NamedSourceWidget, CompositeLookupWidget
-
 from .fields import FlatRelatedField, JSONField, SourceFieldSwitcher
+from .widgets import NamedSourceWidget, CompositeLookupWidget
 
 class FormClassBuilder:
     """Constructs instances of ImporterModelForm, taking headers into account."""
@@ -25,7 +24,7 @@ class FormClassBuilder:
     @cached_property
     def valid_fields(self):
         """ Using the provided headers, prepare a list of valid fields for this importer.
-            Preservers field ordering as defined by the headers.
+            Preserves field ordering as defined by the headers.
         """
         # 1) Determine which of the provided import headers are legitimate by comparing directly against the form fields.
         valid_present_fields = [field for field in self.headers if field in self.modelimportformclass.base_fields]
