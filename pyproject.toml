@@ -16,10 +16,11 @@ packages = [
 python = "^3.9"
 python-dateutil = "^2.7.0"
 tablib = "^3.0.0"
-Django = "^3.0.0"
+Django = "^4.0.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.2"
+pytest = "^7.2.0"
+pytest-django = "4.5.2"
 jsonfield = "^3.1.0"
 
 [build-system]

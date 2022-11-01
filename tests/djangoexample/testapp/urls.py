@@ -1,10 +1,10 @@
-from django.conf.urls import url
 from django.contrib import admin
+from django.urls import path
 
 from .views import CitationCreateView, TestImportView
 
 urlpatterns = [
-    url(r"^admin/", admin.site.urls),
-    url(r"^$", TestImportView.as_view(), name="start"),
-    url(r"^create/$", CitationCreateView.as_view(), name="create"),
+    path(r"^admin/", admin.site.urls),
+    path(r"^$", TestImportView.as_view(), name="start"),
+    path(r"^create/$", CitationCreateView.as_view(), name="create"),
 ]
