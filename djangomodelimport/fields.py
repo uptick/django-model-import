@@ -22,12 +22,12 @@ class FlatRelatedField(forms.Field):
     All the magic happens in magic.py in FlatRelatedFieldFormMixin
     """
 
-    def __init__(self, queryset, fields=[], *args, **kwargs):
+    def __init__(self, queryset, fields=None, *args, **kwargs):
         self.queryset = queryset
         # TODO: If lookup key is provided, allow using it to look up value instead of only
         # retrieving it off the object itself.
         self.model = queryset.model
-        self.fields = fields
+        self.fields = fields or {}
         # Required is False, because this check gets passed down to the fields on the related instance.
         return super().__init__(required=False, *args, **kwargs)
 

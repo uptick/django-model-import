@@ -1,10 +1,11 @@
+from collections import defaultdict
 from functools import cached_property
 
 from django.db.models.fields import NOT_PROVIDED
 from django.forms import modelform_factory
 
-from .fields import FlatRelatedField, JSONField, SourceFieldSwitcher
-from .widgets import CompositeLookupWidget, NamedSourceWidget
+from .fields import JSONField, FlatRelatedField
+from .utils import ImportHeader
 
 
 class FormClassBuilder:
@@ -27,45 +28,88 @@ class FormClassBuilder:
 
     @cached_property
     def valid_fields(self):
-        """Using the provided headers, prepare a list of valid fields for this importer.
-        Preserves field ordering as defined by the headers.
+        """Using the available headers on the form, prepare a list of valid
+        fields for this importer. Preserves field ordering as defined by the headers.
         """
-        # 1) Determine which of the provided import headers are legitimate by comparing directly against the form fields.
-        valid_present_fields = [
-            field
-            for field in self.headers
-            if field in self.modelimportformclass.base_fields
-        ]
-        # 2) Add virtual fields:
-        # - FlatRelatedField: these are a collection of other columns that build a relation on the fly. Always add.
-        # - JSONField: these are provided as FIELDNAME__SOME_DATA, so won't match directly. Just let the whole thing through.
-        # - Anything using NamedSourceWidget: these lookup columns might not match the form field.
-        # - Anything using CompositeLookupWidget: these lookup columns might not always mention the form field target.
-        # - NamedSourceWidget or CompositeLookupWidget mentioned within a SourceFieldSwitcher.
-        # - Fields defined as attributes on the importer, but not listed as form fields (eg because they're used for postprocessing).
-        header_set = set(self.headers)
-        virtual_fields = []
-        for field_name, field_class in self.modelimportformclass.base_fields.items():
-            if isinstance(field_class, FlatRelatedField | JSONField):
-                virtual_fields.append(field_name)
-            elif isinstance(field_class.widget, NamedSourceWidget):
-                if field_class.widget.source in header_set:
-                    virtual_fields.append(field_name)
-            elif isinstance(field_class.widget, CompositeLookupWidget):
-                if set(field_class.widget.source) < header_set:
-                    virtual_fields.append(field_name)
-            elif isinstance(field_class, SourceFieldSwitcher):
-                for switch_field_class in field_class.fields:
-                    if isinstance(switch_field_class.widget, NamedSourceWidget):
-                        if switch_field_class.widget.source in header_set:
-                            virtual_fields.append(field_name)
-                    elif isinstance(field_class.widget, CompositeLookupWidget):
-                        if set(field_class.widget.source) < header_set:
-                            virtual_fields.append(field_name)
 
-        return valid_present_fields + list(
-            set(virtual_fields) - set(valid_present_fields)
-        )
+        flat_related_fields = set()
+
+        def _flatten_headers(
+            import_headers: list[ImportHeader],
+        ) -> dict[str, list[list[str]]]:
+            """Take a list of importers headers and determine which fields they
+            can be assigned to, flattening any alternative options for fields
+
+            NOTE: Alternatives are only available on the first header
+
+            Example:
+                FIELD NAME : IMPORT HEADER > ALTERNATIVE HEADER COMBINATIONS
+                asset: asset_id > property_ref + asset_barcode | property_ref + asset_ref
+                asset: asset_type
+                type: type_id > type_label
+                description: description
+                -- into --
+                FIELD NAME : LIST OF VALID COMBINATIONS
+                asset : [[asset_id, asset_type], [property_ref, asset_barcode], [property_ref, asset_ref]]
+                type: [[type_id], [type_label]]
+                description: [[description]]
+            """
+            result: dict[str, list[list[str]]] = defaultdict(lambda: [[]])
+            for import_header in import_headers:
+                # Track flat related fields as we only need a subset of their keys to be valid
+                if isinstance(import_header.field, FlatRelatedField):
+                    flat_related_fields.add(import_header.field_name)
+
+                # Find or create field header option list
+                field_list = result[import_header.field_name]
+
+                # Add the current header name to the field list
+                field_list[0].append(import_header.name)
+
+                # For any alternatives, add them as other valid options for this field
+                for alt in import_header.alternatives:
+                    alt_fields = _flatten_headers(alt)
+                    for k, v in alt_fields.items():
+                        result[k].extend(v)
+
+            return dict(result)
+
+        # Get the viable headers for the importer class
+        form_headers = self.modelimportformclass.get_available_headers()
+
+        # Find all the valid field combinations
+        valid_headers = _flatten_headers(form_headers)
+
+        field_lookup = {}
+        # Create a header -> field lookup dictionary
+        # VALID IMPORT HEADER COMBINATIONS : FIELD NAME
+        # (asset_id,): asset
+        # (property_ref, asset_barcode): asset
+        # (property_ref, asset_ref) : asset
+        # (type_id,): type
+        # (type_label,): type
+        # (description,): description
+        for field, header_group in valid_headers.items():
+            for headers in header_group:
+                field_lookup[frozenset(headers)] = field
+
+        # See if each valid field header if in the provided import headers
+        valid_present_fields = set()
+        for headers, field in field_lookup.items():
+            # Flat related fields only need a subset of headers to be a valid field
+            if field in flat_related_fields:
+                if headers & set(self.headers):
+                    valid_present_fields.add(field)
+            # All others need the full set of headers to be valid
+            elif headers < set(self.headers):
+                valid_present_fields.add(field)
+
+        # Add an extra JSON Fields as they are wily
+        for header in form_headers:
+            if isinstance(header.field, JSONField):
+                valid_present_fields.add(header.name)
+
+        return list(valid_present_fields)
 
     @cached_property
     def required_fields(self):
