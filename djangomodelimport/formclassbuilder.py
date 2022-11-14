@@ -83,7 +83,7 @@ class FormClassBuilder:
         # Get the viable headers for the importer class
         form_headers = self.modelimportformclass.get_available_headers()
 
-        # Find all the valid field combinations
+        # Find all the valid header combinations that evaluate to form fields
         valid_headers = _flatten_headers(form_headers)
 
         field_lookup = {}
@@ -99,7 +99,8 @@ class FormClassBuilder:
             for headers in header_group:
                 field_lookup[frozenset(headers)] = field
 
-        # See if each valid field header if in the provided import headers
+        # Check each header combination against the input headers to
+        # see if they evaluate to a field
         valid_present_fields = set()
         for headers, field in field_lookup.items():
             # Flat related fields only need a subset of headers to be a valid field
