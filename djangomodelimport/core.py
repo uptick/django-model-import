@@ -8,7 +8,7 @@ from .resultset import ImportResultSet
 class ModelImporter:
     """A base class which parses and processes a CSV import, and handles the priming of any required caches."""
 
-    def __init__(self, modelimportformclass):
+    def __init__(self, modelimportformclass) -> None:
         """
         @param modelimportformclass The ImporterModelForm class (which extends a simple ModelForm)
         """

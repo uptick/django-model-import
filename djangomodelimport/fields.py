@@ -1,9 +1,12 @@
+import datetime
 import json
 import re
+from typing import Any, Iterable
 
 from dateutil import parser
-
 from django import forms
+from django.db.models import QuerySet
+from django.forms import Field
 from django.forms.utils import from_current_timezone
 
 from .widgets import JSONFieldWidget
@@ -22,7 +25,13 @@ class FlatRelatedField(forms.Field):
     All the magic happens in magic.py in FlatRelatedFieldFormMixin
     """
 
-    def __init__(self, queryset, fields=None, *args, **kwargs):
+    def __init__(
+        self,
+        queryset: QuerySet,
+        fields: dict[str, str] = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         self.queryset = queryset
         # TODO: If lookup key is provided, allow using it to look up value instead of only
         # retrieving it off the object itself.
@@ -40,17 +49,24 @@ class CachedChoiceField(UseCacheMixin, forms.Field):
     PreloadedChoiceField.
     """
 
-    def __init__(self, queryset, to_field=None, none_if_missing=[], *args, **kwargs):
+    def __init__(
+        self,
+        queryset: QuerySet,
+        to_field: str | Iterable[str] = None,
+        none_if_missing: Any = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         self.queryset = queryset
         self.model = queryset.model
         self.to_field = to_field
-        self.none_if_missing = none_if_missing
-        return super().__init__(*args, **kwargs)
+        self.none_if_missing = none_if_missing or []
+        super().__init__(*args, **kwargs)
 
-    def get_from_cache(self, value):
+    def get_from_cache(self, value: Any) -> Any:
         return self.instancecache[value]
 
-    def clean(self, value):
+    def clean(self, value: Any) -> Any:
         value = super().clean(value)
 
         # Fast fail if no value provided
@@ -86,7 +102,7 @@ class PreloadedChoiceField(forms.Field):
     to avoid hitting the database for each relationship in the import.
     """
 
-    def clean(self, value):
+    def clean(self, value: Any) -> Any:
         raise NotImplementedError
 
 
@@ -105,11 +121,11 @@ class DateTimeParserField(forms.DateTimeField):
     - XXXX/XX/XX -> YYYY/MM/DD
     """
 
-    def __init__(self, middle_endian=False, *args, **kwargs):
+    def __init__(self, middle_endian: bool = False, *args: Any, **kwargs: Any):
         self.middle_endian = middle_endian
-        return super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-    def to_python(self, value):
+    def to_python(self, value: str) -> datetime.datetime:
         value = (value or "").strip()
         if value:
             try:
@@ -142,13 +158,15 @@ class JSONField(forms.Field):
         {rank: "hello", score: "twenty"}
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         kwargs["widget"] = kwargs.get("widget", JSONFieldWidget)
         kwargs["required"] = False
         kwargs["initial"] = dict
         super().__init__(**kwargs)
 
-    def validate_json(self, value, is_serialized=False):
+    def validate_json(
+        self, value: str | None, is_serialized: bool = False
+    ) -> dict[str, Any]:
         # if empty
         if value is None or value == "" or value == "null":
             value = "{}"
@@ -190,10 +208,10 @@ class JSONField(forms.Field):
 
         return dictionary
 
-    def to_python(self, value):
+    def to_python(self, value: str) -> dict[str, Any]:
         return self.validate_json(value)
 
-    def render(self, name, value, attrs=None):
+    def render(self, name: str, value: str, attrs: Any = None) -> Any:
         # return json representation of a meaningful value
         # doesn't show anything for None, empty strings or empty dictionaries
         if value and not isinstance(value, str):
@@ -204,6 +222,6 @@ class JSONField(forms.Field):
 class SourceFieldSwitcher(forms.Field):
     fields = None
 
-    def __init__(self, *fields):
+    def __init__(self, *fields: Iterable[Field]) -> None:
         self.fields = fields
         super().__init__()

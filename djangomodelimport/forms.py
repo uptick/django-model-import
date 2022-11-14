@@ -26,13 +26,13 @@ class ImporterModelForm(
     routines to ensure we are not doing too many queries with our cached fields.
     """
 
-    def __init__(self, data, caches, author=None, *args, **kwargs):
+    def __init__(self, data, caches, author=None, *args, **kwargs) -> None:
         self.caches = caches
         self.author = author
         self._warnings = defaultdict(list)
         super().__init__(data, *args, **kwargs)
 
-    def add_warning(self, field: str, warning: str):
+    def add_warning(self, field: str, warning: str) -> None:
         # Mimic django form behaviour for errors
         if not field:
             field = NON_FIELD_ERRORS
@@ -40,7 +40,7 @@ class ImporterModelForm(
         self._warnings[field].append(warning)
 
     @property
-    def warnings(self):
+    def warnings(self) -> dict[str, list[str]]:
         return dict(self._warnings)
 
     # This improves preview performance but eliminates validation on uniqueness constraints
