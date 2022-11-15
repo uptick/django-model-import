@@ -11,7 +11,7 @@ from .magic import (
     JSONFieldFormMixin,
     SourceFieldSwitcherMixin,
 )
-from .utils import HasSource, ImportHeader
+from .utils import HasSource, ImportFieldMetadata
 from .widgets import CompositeLookupWidget
 
 
@@ -48,13 +48,33 @@ class ImporterModelForm(
     #     pass
 
     @classmethod
-    def get_available_headers(cls) -> list[ImportHeader]:
-        """Generate a list of available fields for the ImporterClass"""
+    def get_available_headers(cls) -> list[tuple[str, str]]:
+        """Returns a list of headers available on the import form
+
+        Returned as a tuple of (key, label)
+        """
+        fields = cls.get_field_metadata()
+
+        header_set = set()
+        headers = []
+
+        for field in fields.values():
+            for sources in field.sources:
+                for header, label in sources:
+                    if header not in header_set:
+                        header_set.add(header)
+                        headers.append((header, label))
+
+        return headers
+
+    @classmethod
+    def get_field_metadata(cls) -> dict[str, ImportFieldMetadata]:
+        """Generate a dict of available fields for the ImporterClass"""
         # 1) Evaluate Field type:
         # - SourceFieldSwitcher: these are a collection of different ways to find a related object.
         # - FlatRelatedField: these are a collection of other columns that build a relation on the fly.
 
-        # 2) For each field, check its widget to see what headers it reads from
+        # 2) For each field, check its widget to see what headers it can source from
         # - Anything using NamedSourceWidget or has a "source" attr:
         #     these lookup columns might not match the form field.
         # - Anything using CompositeLookupWidget:
@@ -76,10 +96,9 @@ class ImporterModelForm(
             if value["help_text"] and key not in help_texts:
                 help_texts[key] = value["help_text"]
 
-        def _get_headers(name, widget, field_instance) -> list[ImportHeader]:
+        def _get_headers(name, widget) -> list[tuple[str, str]]:
             """Evaluate the viable headers added by a field widget"""
             found_headers = []
-            widget_required = True if widget and widget.is_required else False
 
             match widget:
                 case CompositeLookupWidget(source=sub_fields):
@@ -88,64 +107,60 @@ class ImporterModelForm(
                         partial(
                             _get_headers,
                             widget=None,
-                            field_instance=field_instance,
                         ),
                         sub_fields,
                     ):
                         found_headers.extend(new_sub_headers)
-                case HasSource(source=source):
+                case HasSource(source=str(source)):
                     # Renames the header for a field
                     # for example the "NamedSourceWidget"
-                    found_headers.append(
-                        ImportHeader(
-                            field=field_instance,
-                            field_name=field_name,
-                            name=source,
-                            help_text=help_texts.get(source, ""),
-                            required=field.required or widget_required,
-                        )
-                    )
+                    found_headers.extend(_get_headers(source, widget=None))
+                case HasSource(source=sources):
+                    # Renames the header for a field
+                    # for example the "NamedSourceWidget"
+                    for source in sources:
+                        found_headers.extend(_get_headers(source, widget=None))
                 case _:
                     # Anything else
                     found_headers.append(
-                        ImportHeader(
-                            field=field_instance,
-                            field_name=field_name,
-                            name=name,
-                            help_text=help_texts.get(name, ""),
-                            display=model_fields.get(name, {}).get("verbose_name", ""),
-                            required=field.required or widget_required,
-                        )
+                        (name, model_fields.get(name, {}).get("verbose_name", name))
                     )
 
             return found_headers
 
-        import_headers: list[ImportHeader] = []
+        import_fields: dict[str, ImportFieldMetadata] = {}
 
-        for field_name, field in cls.base_fields.items():
-            match field:
+        for field_name, field_instance in cls.base_fields.items():
+            # Get or create new ImportFieldMetadata
+            field = import_fields.get(
+                "field_name",
+                ImportFieldMetadata(
+                    field=field_instance,
+                    required=field_instance.required,
+                    help_text=help_texts.get(field_name, ""),
+                ),
+            )
+
+            # Find the header sources for this field
+            match field_instance:
                 case SourceFieldSwitcher(fields=switch_fields):
                     # Containers a collections of ways to assign this field
-                    temp_fields = []
                     for switch_field in switch_fields:
-                        temp_fields.append(
-                            _get_headers(field_name, switch_field.widget, switch_field)
+                        field.sources.append(
+                            _get_headers(field_name, switch_field.widget)
                         )
-
-                    new_field = temp_fields[0]
-                    new_field[0].alternatives = temp_fields[1:]
-                    import_headers.extend(new_field)
                 case FlatRelatedField(fields=related_fields):
                     # Defines a way to create related objects from a set of headers
                     for new_fields in map(
-                        partial(
-                            _get_headers, widget=field.widget, field_instance=field
-                        ),
+                        partial(_get_headers, widget=field_instance.widget),
                         related_fields.keys(),
                     ):
-                        import_headers.extend(new_fields)
+                        field.sources.append(new_fields)
                 case _:
-                    fields = _get_headers(field_name, field.widget, field)
-                    import_headers.extend(fields)
+                    fields = _get_headers(field_name, field_instance.widget)
+                    field.sources.append(fields)
 
-        return import_headers
+            # Add the field to the result
+            import_fields[field_name] = field
+
+        return import_fields
