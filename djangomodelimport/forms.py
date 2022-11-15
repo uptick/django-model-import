@@ -55,8 +55,8 @@ class ImporterModelForm(
         """
         fields = cls.get_field_metadata()
 
-        header_set = set()
-        headers = []
+        header_set = {"id"}
+        headers = [("id", "ID")]
 
         for field in fields.values():
             for sources in field.sources:
@@ -86,7 +86,7 @@ class ImporterModelForm(
         help_texts = getattr(cls.Meta, "help_texts", {})
         model_fields = {
             field.name: {
-                "verbose_name": field.verbose_name,
+                "label": field.verbose_name.title(),
                 "help_text": field.help_text,
             }
             for field in cls.Meta.model._meta.fields
@@ -123,7 +123,12 @@ class ImporterModelForm(
                 case _:
                     # Anything else
                     found_headers.append(
-                        (name, model_fields.get(name, {}).get("verbose_name", name))
+                        (
+                            name,
+                            model_fields.get(name, {}).get(
+                                "label", name.replace("_", " ").title()
+                            ),
+                        )
                     )
 
             return found_headers
@@ -132,13 +137,10 @@ class ImporterModelForm(
 
         for field_name, field_instance in cls.base_fields.items():
             # Get or create new ImportFieldMetadata
-            field = import_fields.get(
-                "field_name",
-                ImportFieldMetadata(
-                    field=field_instance,
-                    required=field_instance.required,
-                    help_text=help_texts.get(field_name, ""),
-                ),
+            field = ImportFieldMetadata(
+                field=field_instance,
+                required=field_instance.required,
+                help_text=help_texts.get(field_name, ""),
             )
 
             # Find the header sources for this field
@@ -151,11 +153,13 @@ class ImporterModelForm(
                         )
                 case FlatRelatedField(fields=related_fields):
                     # Defines a way to create related objects from a set of headers
+                    temp_source = []
                     for new_fields in map(
                         partial(_get_headers, widget=field_instance.widget),
                         related_fields.keys(),
                     ):
-                        field.sources.append(new_fields)
+                        temp_source.extend(new_fields)
+                    field.sources.append(temp_source)
                 case _:
                     fields = _get_headers(field_name, field_instance.widget)
                     field.sources.append(fields)
