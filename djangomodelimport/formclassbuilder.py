@@ -32,7 +32,7 @@ class FormClassBuilder:
 
     @cached_property
     def valid_fields(self) -> list[str]:
-        """Using the available headers on the form, prepare a list of valid
+        """Using the provided headers, prepare a list of valid
         fields for this importer. Preserves field ordering as defined by the headers.
         """
 
@@ -44,6 +44,8 @@ class FormClassBuilder:
         valid_present_fields = set()
         for field_name, field_meta in form_field_metadata.items():
             if isinstance(field_meta.field, (FlatRelatedField, JSONField)):
+                # FlatRelatedField: these are a collection of other columns that build a relation on the fly. Always add.
+                # JSONField: these are provided as FIELDNAME__SOME_DATA, so won't match directly. Just let the whole thing through.
                 valid_present_fields.add(field_name)
             else:
                 for source in field_meta.sources:
