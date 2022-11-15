@@ -1,24 +1,29 @@
 from functools import cached_property
+from typing import TypeVar, TYPE_CHECKING
 
 from django.db.models.fields import NOT_PROVIDED
 from django.forms import modelform_factory
 
-from .fields import FlatRelatedField, JSONField, SourceFieldSwitcher
-from .widgets import CompositeLookupWidget, NamedSourceWidget
+from .fields import JSONField, FlatRelatedField
+
+if TYPE_CHECKING:
+    from . import ImporterModelForm  # NOQA
+
+_ImporterForm = TypeVar("_ImporterForm", bound="ImporterModelForm")
 
 
 class FormClassBuilder:
     """Constructs instances of ImporterModelForm, taking headers into account."""
 
-    def __init__(self, modelimportformclass, headers):
+    def __init__(self, modelimportformclass: _ImporterForm, headers: list[str]) -> None:
         self.headers = headers
         self.modelimportformclass = modelimportformclass
         self.model = modelimportformclass.Meta.model
 
-    def build_update_form(self):
+    def build_update_form(self) -> _ImporterForm:
         return self._get_modelimport_form_class(fields=self.valid_fields)
 
-    def build_create_form(self):
+    def build_create_form(self) -> _ImporterForm:
         # Combine valid & required fields; preserving order of valid fields.
         form_fields = self.valid_fields + list(
             set(self.required_fields) - set(self.valid_fields)
@@ -26,49 +31,31 @@ class FormClassBuilder:
         return self._get_modelimport_form_class(fields=form_fields)
 
     @cached_property
-    def valid_fields(self):
-        """Using the provided headers, prepare a list of valid fields for this importer.
-        Preserves field ordering as defined by the headers.
+    def valid_fields(self) -> list[str]:
+        """Using the provided headers, prepare a list of valid
+        fields for this importer. Preserves field ordering as defined by the headers.
         """
-        # 1) Determine which of the provided import headers are legitimate by comparing directly against the form fields.
-        valid_present_fields = [
-            field
-            for field in self.headers
-            if field in self.modelimportformclass.base_fields
-        ]
-        # 2) Add virtual fields:
-        # - FlatRelatedField: these are a collection of other columns that build a relation on the fly. Always add.
-        # - JSONField: these are provided as FIELDNAME__SOME_DATA, so won't match directly. Just let the whole thing through.
-        # - Anything using NamedSourceWidget: these lookup columns might not match the form field.
-        # - Anything using CompositeLookupWidget: these lookup columns might not always mention the form field target.
-        # - NamedSourceWidget or CompositeLookupWidget mentioned within a SourceFieldSwitcher.
-        # - Fields defined as attributes on the importer, but not listed as form fields (eg because they're used for postprocessing).
-        header_set = set(self.headers)
-        virtual_fields = []
-        for field_name, field_class in self.modelimportformclass.base_fields.items():
-            if isinstance(field_class, FlatRelatedField | JSONField):
-                virtual_fields.append(field_name)
-            elif isinstance(field_class.widget, NamedSourceWidget):
-                if field_class.widget.source in header_set:
-                    virtual_fields.append(field_name)
-            elif isinstance(field_class.widget, CompositeLookupWidget):
-                if set(field_class.widget.source) < header_set:
-                    virtual_fields.append(field_name)
-            elif isinstance(field_class, SourceFieldSwitcher):
-                for switch_field_class in field_class.fields:
-                    if isinstance(switch_field_class.widget, NamedSourceWidget):
-                        if switch_field_class.widget.source in header_set:
-                            virtual_fields.append(field_name)
-                    elif isinstance(field_class.widget, CompositeLookupWidget):
-                        if set(field_class.widget.source) < header_set:
-                            virtual_fields.append(field_name)
 
-        return valid_present_fields + list(
-            set(virtual_fields) - set(valid_present_fields)
-        )
+        # Get the viable headers for the importer class
+        form_field_metadata = self.modelimportformclass.get_field_metadata()
+
+        # Check each header combination against the input headers to
+        # see if they evaluate to a field
+        valid_present_fields = set()
+        for field_name, field_meta in form_field_metadata.items():
+            if isinstance(field_meta.field, (FlatRelatedField, JSONField)):
+                # FlatRelatedField: these are a collection of other columns that build a relation on the fly. Always add.
+                # JSONField: these are provided as FIELDNAME__SOME_DATA, so won't match directly. Just let the whole thing through.
+                valid_present_fields.add(field_name)
+            else:
+                for source in field_meta.sources:
+                    if {key for key, _ in source} <= set(self.headers):
+                        valid_present_fields.add(field_name)
+
+        return list(valid_present_fields)
 
     @cached_property
-    def required_fields(self):
+    def required_fields(self) -> list[str]:
         fields = self.model._meta.get_fields()
         required_fields = []
 
@@ -84,7 +71,7 @@ class FormClassBuilder:
                 required_fields.append(f.name)
         return required_fields
 
-    def _get_modelimport_form_class(self, fields):
+    def _get_modelimport_form_class(self, fields) -> _ImporterForm:
         """Return a modelform for use with this data.
 
         We use a modelform_factory to dynamically limit the fields on the import,

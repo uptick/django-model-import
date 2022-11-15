@@ -8,7 +8,7 @@ from .resultset import ImportResultSet
 class ModelImporter:
     """A base class which parses and processes a CSV import, and handles the priming of any required caches."""
 
-    def __init__(self, modelimportformclass):
+    def __init__(self, modelimportformclass) -> None:
         """
         @param modelimportformclass The ImporterModelForm class (which extends a simple ModelForm)
         """
@@ -91,6 +91,12 @@ class ModelImporter:
             to_be_skipped = skip_func(row) if skip_func else False
             import_form_class = ModelCreateForm if to_be_created else ModelUpdateForm
 
+            # Evaluate skip first
+            # So that the import doesn't die for no reason
+            if to_be_skipped:
+                skipped += 1
+                continue
+
             if to_be_created and not allow_insert:
                 errors = [("id", ["Creating new rows is not permitted"])]
                 importresult.append(i, row, errors, instance, to_be_created)
@@ -122,10 +128,6 @@ class ModelImporter:
                             ],
                         )
                     ]
-
-            if to_be_skipped:
-                skipped += 1
-                continue
 
             if not errors:
                 form = import_form_class(

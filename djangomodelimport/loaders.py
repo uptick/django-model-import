@@ -1,3 +1,10 @@
+from typing import Iterable, Any, TypeVar
+
+from django.db.models import QuerySet
+
+T = TypeVar("T")
+
+
 class CachedInstanceLoader(dict):
     """A clever cache that queries the database for any missing objects.
 
@@ -5,13 +12,19 @@ class CachedInstanceLoader(dict):
     cached for extra speed.
     """
 
-    def __init__(self, queryset, to_field, *args, **kwargs):
+    def __init__(
+        self,
+        queryset: QuerySet[T],
+        to_field: str | Iterable[str],
+        *args: Any,
+        **kwargs: Any,
+    ):
         self.queryset = queryset
         self.model = queryset.model
         self.to_field = to_field
         self.multifield = isinstance(to_field, list) or isinstance(to_field, tuple)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> T:
         # Attempt to get the currently cached value.
         value = super(CachedInstanceLoader, self).__getitem__(item)
 
@@ -21,7 +34,7 @@ class CachedInstanceLoader(dict):
 
         return value
 
-    def __missing__(self, value):
+    def __missing__(self, value: str) -> T:
         if self.multifield:
             params = dict(zip(self.to_field, value))
         else:

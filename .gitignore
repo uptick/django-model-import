@@ -14,3 +14,4 @@ environ/
 examples/example_site/env
 **.pem
 src/
+.idea/
