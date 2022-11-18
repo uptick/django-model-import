@@ -143,7 +143,7 @@ class ModelImporter:
                         if to_be_updated:
                             updated += 1
                     except Exception as err:
-                        errors = [repr(err)]
+                        errors = [(i, repr(err))]
 
                 else:
                     # TODO: Filter out errors associated with FlatRelatedField
