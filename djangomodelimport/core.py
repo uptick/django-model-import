@@ -110,6 +110,19 @@ class ModelImporter:
             if to_be_updated:
                 try:
                     instance = self.get_for_update(row["id"])
+                except ValueError as e:
+                    # We cannot validate an id's format until we try to fetch it from the DB
+                    if "expected a number" in str(e):
+                        errors = [
+                            (
+                                "id",
+                                [
+                                    f'{self.model._meta.verbose_name.title()} {row["id"]} is an invalid format for an ID.'
+                                ],
+                            )
+                        ]
+                    else:
+                        raise e
                 except self.model.DoesNotExist:
                     errors = [
                         (
