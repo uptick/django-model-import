@@ -7,4 +7,4 @@ from .parsers import (
 )  # noqa
 from .resultset import ImportResultRow, ImportResultSet  # noqa
 
-__version__ = "0.5.1"
+__version__ = "0.6.2"
