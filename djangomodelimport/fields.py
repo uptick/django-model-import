@@ -222,6 +222,6 @@ class JSONField(forms.Field):
 class SourceFieldSwitcher(forms.Field):
     fields = None
 
-    def __init__(self, *fields: Iterable[Field]) -> None:
+    def __init__(self, *fields: Field, **kwargs: Any) -> None:
         self.fields = fields
-        super().__init__()
+        super().__init__(**kwargs)
