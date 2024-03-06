@@ -115,10 +115,10 @@ class CachedChoiceFieldFormMixin:
         """We need to exclude any CachedChoiceFields from validation, as this
         causes a m * n queries where m is the number of relations, n is rows.
         """
-        exclude = []
+        exclude = super()._get_validation_exclusions()
         for field, fieldinstance in self.fields.items():
             if isinstance(fieldinstance, CachedChoiceField):
-                exclude.append(field)
+                exclude.add(field)
         return exclude
 
 
