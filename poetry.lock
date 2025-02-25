@@ -2,18 +2,18 @@
 
 [[package]]
 name = "asgiref"
-version = "3.7.0"
+version = "3.7.2"
 description = "ASGI specs, helper code, and adapters"
 optional = false
 python-versions = ">=3.7"
 groups = ["main", "dev"]
 files = [
-    {file = "asgiref-3.7.0-py3-none-any.whl", hash = "sha256:14087924af5be5d8103d6f2edffe45a0bf7ab1b2a771b6f00a6db8c302f21f34"},
-    {file = "asgiref-3.7.0.tar.gz", hash = "sha256:5d6c4a8a1c99f58eaa3bc392ee04e3587b693f09e3af1f3f16a09094f334eb52"},
+    {file = "asgiref-3.7.2-py3-none-any.whl", hash = "sha256:89b2ef2247e3b562a16eef663bc0e2e703ec6468e2fa8a5cd61cd449786d4f6e"},
+    {file = "asgiref-3.7.2.tar.gz", hash = "sha256:9e0ce3aa93a819ba5b45120216b23878cf6e8525eb3848653452b4192b92afed"},
 ]
 
 [package.dependencies]
-typing-extensions = {version = "*", markers = "python_version < \"3.11\""}
+typing-extensions = {version = ">=4", markers = "python_version < \"3.11\""}
 
 [package.extras]
 tests = ["mypy (>=0.800)", "pytest", "pytest-asyncio"]
@@ -288,4 +288,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "e69b7f45fe2328be49b9a99fc61eddebaf75df19146bff3cb74bd0f9d026bfe8"
+content-hash = "35513e14e2351e6e7a18a8d0687bcbf5fccdbd479cd170e1c766b50a348a923a"
