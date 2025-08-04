@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-model-import"
-version = "0.7.6"
+version = "0.7.7"
 description = "A Django library for importing CSVs and other structured data quickly using Django's ModelForm for validation and deserialisation into an instance."
 authors = ["Aidan Lister <aidan@uptickhq.com>"]
 readme = "README.md"
@@ -16,8 +16,7 @@ packages = [
 python = "^3.10"
 python-dateutil = "^2.7.0"
 tablib = "^3.0.0"
-django = ">=3.2.0,<5.1.0"
-asgiref = ">=3.7.2"
+django = ">=3.2.0,<6.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
