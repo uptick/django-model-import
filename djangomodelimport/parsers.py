@@ -19,9 +19,7 @@ class BaseImportParser:
                 importer_softheadings = self.modelvalidator.ImporterMeta.soft_headings
 
                 for renameto in importer_softheadings:  # new column name
-                    for renamefrom in importer_softheadings[
-                        renameto
-                    ]:  # old column name
+                    for renamefrom in importer_softheadings[renameto]:  # old column name
                         header_map[renamefrom.lower()] = renameto.lower()
         return header_map
 
@@ -51,9 +49,7 @@ class TablibCSVImportParser(TablibBaseImportParser):
         header_map = self.get_soft_headings()
 
         # Make all our headings lowercase and sub in soft headings
-        for col_id, header in enumerate(
-            dataset.headers
-        ):  # replace it in headers if found
+        for col_id, header in enumerate(dataset.headers):  # replace it in headers if found
             header_name = header.strip().lower()
             dataset.headers[col_id] = header_name
             if header_name in header_map.keys():

@@ -1,7 +1,6 @@
 from django import forms
 
-import djangomodelimport
-
+import djangomodelimport.fields
 from .models import Author, Book, Citation, Company, Contact
 
 
@@ -19,7 +18,7 @@ class BookImporter(djangomodelimport.ImporterModelForm):
 
 class BookImporterWithCache(djangomodelimport.ImporterModelForm):
     name = forms.CharField()
-    author = djangomodelimport.CachedChoiceField(
+    author = djangomodelimport.fields.CachedChoiceField(
         queryset=Author.objects.all(), to_field="name"
     )
 
@@ -33,10 +32,10 @@ class BookImporterWithCache(djangomodelimport.ImporterModelForm):
 
 class CitationImporter(djangomodelimport.ImporterModelForm):
     name = forms.CharField()
-    author = djangomodelimport.CachedChoiceField(
+    author = djangomodelimport.fields.CachedChoiceField(
         queryset=Author.objects.all(), to_field="name"
     )
-    metadata = djangomodelimport.JSONField()
+    metadata = djangomodelimport.fields.JSONField()
 
     class Meta:
         model = Citation
@@ -48,7 +47,7 @@ class CitationImporter(djangomodelimport.ImporterModelForm):
 
 
 class CompanyImporter(djangomodelimport.ImporterModelForm):
-    primary_contact = djangomodelimport.FlatRelatedField(
+    primary_contact = djangomodelimport.fields.FlatRelatedField(
         queryset=Contact.objects.all(),
         fields={
             "contact_name": {"to_field": "name", "required": True},

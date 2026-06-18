@@ -1,10 +1,20 @@
-from .core import ModelImporter  # noqa
-from .forms import ImporterModelForm  # noqa
+from .core import ModelImporter
+from .forms import ImporterModelForm
 from .parsers import (
     BaseImportParser,
     TablibCSVImportParser,
     TablibXLSXImportParser,
-)  # noqa
-from .resultset import ImportResultRow, ImportResultSet  # noqa
+)
+from .resultset import ImportResultRow, ImportResultSet
 
-__version__ = "0.7.5"
+__all__ = [
+    "BaseImportParser",
+    "ImporterModelForm",
+    "ImportResultRow",
+    "ImportResultSet",
+    "ModelImporter",
+    "TablibCSVImportParser",
+    "TablibXLSXImportParser",
+]
+
+__version__ = "0.8.0"

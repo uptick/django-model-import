@@ -1,28 +1,64 @@
-[tool.poetry]
+[project]
 name = "django-model-import"
-version = "0.7.7"
+version = "0.8.0"
 description = "A Django library for importing CSVs and other structured data quickly using Django's ModelForm for validation and deserialisation into an instance."
-authors = ["Aidan Lister <aidan@uptickhq.com>"]
+authors = [{ name = "Aidan Lister", email = "aidan@uptickhq.com" }]
+requires-python = ">=3.10,<4"
 readme = "README.md"
 license = "MIT"
-homepage = "https://github.com/uptick/django-model-import"
-repository = "https://github.com/uptick/django-model-import"
-documentation = "https://github.com/uptick/django-model-import/tree/master/tests/djangoexample"
-packages = [
-    {include = "djangomodelimport"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "python-dateutil>=2.9.0,<3",
+    "tablib>=3.3.0,<4",
+    "django>=3.2.0,<7.0.0",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-python-dateutil = "^2.7.0"
-tablib = "^3.0.0"
-django = ">=3.2.0,<6.0.0"
+[project.urls]
+Homepage = "https://github.com/uptick/django-model-import"
+Repository = "https://github.com/uptick/django-model-import"
+Documentation = "https://github.com/uptick/django-model-import/tree/master/tests/djangoexample"
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.2.0"
-pytest-django = "4.5.2"
-jsonfield = "^3.1.0"
+[dependency-groups]
+dev = [
+    "pytest==9.1.0",
+    "pytest-django==4.12.0",
+    "ruff==0.15.17",
+]
+
+[tool.uv]
+default-groups = "all"
+
+[tool.uv.build-backend]
+module-name = ["djangomodelimport"]
+module-root = ""
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.isort]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "django",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+django = ["django"]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.11.19,<0.12.0"]
+build-backend = "uv_build"
+

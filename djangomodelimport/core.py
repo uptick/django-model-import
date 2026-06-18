@@ -20,11 +20,7 @@ class ModelImporter:
         self.update_queryset = None
 
     def get_for_update(self, pk):
-        return (
-            self.update_cache[pk]
-            if self.update_cache
-            else self.update_queryset.get(pk=pk)
-        )
+        return self.update_cache[pk] if self.update_cache else self.update_queryset.get(pk=pk)
 
     @transaction.atomic
     def process(
@@ -51,9 +47,7 @@ class ModelImporter:
         # Set up an "update" cache to preload any objects which might be updated
         if allow_update:
             self.update_queryset = (
-                limit_to_queryset
-                if limit_to_queryset is not None
-                else self.model.objects.all()
+                limit_to_queryset if limit_to_queryset is not None else self.model.objects.all()
             )
             # We only build the update_cache if limit_to_queryset is provided, with the assumption that the dataset
             # is then not too big. This may not be a valid assumption.
@@ -117,7 +111,7 @@ class ModelImporter:
                             (
                                 "id",
                                 [
-                                    f'{self.model._meta.verbose_name.title()} {row["id"]} is an invalid format for an ID.'
+                                    f"{self.model._meta.verbose_name.title()} {row['id']} is an invalid format for an ID."
                                 ],
                             )
                         ]
@@ -128,7 +122,7 @@ class ModelImporter:
                         (
                             "id",
                             [
-                                f'{self.model._meta.verbose_name.title()} {row["id"]} does not exist.'
+                                f"{self.model._meta.verbose_name.title()} {row['id']} does not exist."
                             ],
                         )
                     ]
@@ -137,15 +131,13 @@ class ModelImporter:
                         (
                             "id",
                             [
-                                f'{self.model._meta.verbose_name.title()} {row["id"]} cannot be updated.'
+                                f"{self.model._meta.verbose_name.title()} {row['id']} cannot be updated."
                             ],
                         )
                     ]
 
             if not errors:
-                form = import_form_class(
-                    row, caches=caches, instance=instance, author=author
-                )
+                form = import_form_class(row, caches=caches, instance=instance, author=author)
                 if form.is_valid():
                     try:
                         with transaction.atomic():
@@ -167,9 +159,7 @@ class ModelImporter:
             if not instance or not instance.pk or errors:
                 failed += 1
 
-            result_row = importresult.append(
-                i, row, errors, instance, to_be_created, warnings
-            )
+            result_row = importresult.append(i, row, errors, instance, to_be_created, warnings)
             if progress_logger:
                 progress_logger(result_row)
 
@@ -178,7 +168,5 @@ class ModelImporter:
         else:
             transaction.savepoint_rollback(sid)
 
-        importresult.set_counts(
-            created=created, updated=updated, skipped=skipped, failed=failed
-        )
+        importresult.set_counts(created=created, updated=updated, skipped=skipped, failed=failed)
         return importresult

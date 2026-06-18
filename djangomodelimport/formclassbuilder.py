@@ -25,9 +25,7 @@ class FormClassBuilder:
 
     def build_create_form(self) -> _ImporterForm:
         # Combine valid & required fields; preserving order of valid fields.
-        form_fields = self.valid_fields + list(
-            set(self.required_fields) - set(self.valid_fields)
-        )
+        form_fields = self.valid_fields + list(set(self.required_fields) - set(self.valid_fields))
         return self._get_modelimport_form_class(fields=form_fields)
 
     @cached_property
