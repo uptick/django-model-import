@@ -21,9 +21,7 @@ class ImportResultSet:
         return f"ImportResultSet ({i} rows, {j} errors, {k} warnings)"
 
     def append(self, index, row, errors, instance, created, warnings=None):
-        result_row = ImportResultRow(
-            self, index, row, errors, instance, created, warnings
-        )
+        result_row = ImportResultRow(self, index, row, errors, instance, created, warnings)
         self.results.append(result_row)
         return result_row
 
@@ -34,16 +32,12 @@ class ImportResultSet:
         return self.results
 
     def get_errors(self):
-        return [
-            (row.linenumber, row.errors) for row in self.results if not row.is_valid()
-        ]
+        return [(row.linenumber, row.errors) for row in self.results if not row.is_valid()]
 
     def get_warnings(self):
         return [(row.linenumber, row.warnings) for row in self.results if row.warnings]
 
-    def set_counts(
-        self, created=created, updated=updated, skipped=skipped, failed=failed
-    ):
+    def set_counts(self, created=created, updated=updated, skipped=skipped, failed=failed):
         self.created = created
         self.updated = updated
         self.skipped = skipped
@@ -63,9 +57,7 @@ class ImportResultRow:
     instance = None
     created = None
 
-    def __init__(
-        self, resultset, linenumber, row, errors, instance, created, warnings=None
-    ):
+    def __init__(self, resultset, linenumber, row, errors, instance, created, warnings=None):
         self.resultset = resultset
         self.linenumber = linenumber
         self.row = row

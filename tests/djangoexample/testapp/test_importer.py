@@ -1,5 +1,7 @@
 import datetime
 
+from django.forms.utils import from_current_timezone
+
 from testapp.importers import (
     BookImporter,
     BookImporterWithCache,
@@ -10,7 +12,8 @@ from testapp.models import Author, Book, Citation, Company, Contact
 
 from django.test import TestCase
 
-from djangomodelimport import DateTimeParserField, ModelImporter, TablibCSVImportParser
+from djangomodelimport import ModelImporter, TablibCSVImportParser
+from djangomodelimport.fields import DateTimeParserField
 
 sample_csv_1_books = """id,name,author
 ,How to be awesome,Aidan Lister
@@ -96,9 +99,7 @@ class ImporterTests(TestCase):
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 2)
-        self.assertEqual(
-            errors[0], (1, [("id", ["Creating new rows is not permitted"])])
-        )
+        self.assertEqual(errors[0], (1, [("id", ["Creating new rows is not permitted"])]))
 
     def test_importer_no_update(self):
         a1 = Author.objects.create(name="Aidan Lister")
@@ -122,9 +123,7 @@ class ImporterTests(TestCase):
         # Make sure there's no errors
         errors = preview.get_errors()
         self.assertEqual(len(errors), 2)
-        self.assertEqual(
-            errors[0], (1, [("id", ["Updating existing rows is not permitted"])])
-        )
+        self.assertEqual(errors[0], (1, [("id", ["Updating existing rows is not permitted"])]))
 
     def test_importer_limited_queryset(self):
         a1 = Author.objects.create(name="Author Joe")
@@ -215,20 +214,34 @@ class CachedChoiceFieldTests(TestCase):
 
         # Check for only two queries (one to look up Bill, another to look up Aidan Lister)
         # Expected query log:
-        # SAVEPOINT "s140735624082240_x2"
-        # SAVEPOINT "s140735624082240_x3"
-        # SELECT "testapp_author"."id", "testapp_author"."name" FROM "testapp_author" WHERE "testapp_author"."name" = 'Aidan Lister'
-        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be awesome', 2)
-        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be really awesome', 2)
-        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be the best', 2)
-        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be great', 2)
-        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be so good', 2)
-        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be better than that', 2)
-        # SELECT "testapp_author"."id", "testapp_author"."name" FROM "testapp_author" WHERE "testapp_author"."name" = 'Bill'
-        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How not to be awesome', 3)
-        # RELEASE SAVEPOINT "s140735624082240_x3"
-        # RELEASE SAVEPOINT "s140735624082240_x2"
-        with self.assertNumQueries(13):
+        # SAVEPOINT "s8294096512_x33"
+        # SAVEPOINT "s8294096512_x34"
+        # SELECT "testapp_author"."id", "testapp_author"."name" FROM "testapp_author" WHERE "testapp_author"."name" = 'Aidan Lister' LIMIT 21
+        # SAVEPOINT "s8294096512_x35"
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be awesome', 2) RETURNING "testapp_book"."id"
+        # RELEASE SAVEPOINT "s8294096512_x35"
+        # SAVEPOINT "s8294096512_x36"
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be really awesome', 2) RETURNING "testapp_book"."id"
+        # RELEASE SAVEPOINT "s8294096512_x36"
+        # SAVEPOINT "s8294096512_x37"
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be the best', 2) RETURNING "testapp_book"."id"
+        # RELEASE SAVEPOINT "s8294096512_x37"
+        # SAVEPOINT "s8294096512_x38"
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be great', 2) RETURNING "testapp_book"."id"
+        # RELEASE SAVEPOINT "s8294096512_x38"
+        # SAVEPOINT "s8294096512_x39"
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be so good', 2) RETURNING "testapp_book"."id"
+        # RELEASE SAVEPOINT "s8294096512_x39"
+        # SAVEPOINT "s8294096512_x40"
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How to be better than that', 2) RETURNING "testapp_book"."id"
+        # RELEASE SAVEPOINT "s8294096512_x40"
+        # SELECT "testapp_author"."id", "testapp_author"."name" FROM "testapp_author" WHERE "testapp_author"."name" = 'Bill' LIMIT 21
+        # SAVEPOINT "s8294096512_x41"
+        # INSERT INTO "testapp_book" ("name", "author_id") VALUES ('How not to be awesome', 3) RETURNING "testapp_book"."id"
+        # RELEASE SAVEPOINT "s8294096512_x41"
+        # RELEASE SAVEPOINT "s8294096512_x34"
+        # RELEASE SAVEPOINT "s8294096512_x33"
+        with self.assertNumQueries(27):
             importresult = importer.process(headers, rows, commit=True)
 
         res = importresult.get_results()
@@ -344,9 +357,7 @@ class FlatRelatedFieldTests(TestCase):
         self.assertEqual(org.primary_contact.name, "Aidan")
 
     def test_update(self):
-        contact = Contact.objects.create(
-            name="Tapir", email="ziggur@t.com", mobile="5317707"
-        )
+        contact = Contact.objects.create(name="Tapir", email="ziggur@t.com", mobile="5317707")
         company = Company.objects.create(name="Okapi", primary_contact=contact)
 
         headers = ["id", "contact_name", "email"]
@@ -380,33 +391,39 @@ class DateTimeParserFieldTests(TestCase):
 
     def test_little_endian_parsing(self):
         self.assertEqual(
-            self.ledtf.to_python("01/02/03"), datetime.datetime(2003, 2, 1, 0, 0)
+            self.ledtf.to_python("01/02/03"),
+            from_current_timezone(datetime.datetime(2003, 2, 1, 0, 0)),
         )
         self.assertEqual(
-            self.ledtf.to_python("01/02/2003"), datetime.datetime(2003, 2, 1, 0, 0)
+            self.ledtf.to_python("01/02/2003"),
+            from_current_timezone(datetime.datetime(2003, 2, 1, 0, 0)),
         )
 
     def test_middle_endian_parsing(self):
         self.assertEqual(
-            self.medtf.to_python("01/02/03"), datetime.datetime(2003, 1, 2, 0, 0)
+            self.medtf.to_python("01/02/03"),
+            from_current_timezone(datetime.datetime(2003, 1, 2, 0, 0)),
         )
         self.assertEqual(
-            self.medtf.to_python("01/02/2003"), datetime.datetime(2003, 1, 2, 0, 0)
+            self.medtf.to_python("01/02/2003"),
+            from_current_timezone(datetime.datetime(2003, 1, 2, 0, 0)),
         )
 
     def test_big_endian_parsing(self):
         self.assertEqual(
-            self.ledtf.to_python("2001/02/03"), datetime.datetime(2001, 2, 3, 0, 0)
+            self.ledtf.to_python("2001/02/03"),
+            from_current_timezone(datetime.datetime(2001, 2, 3, 0, 0)),
         )
         self.assertEqual(
-            self.medtf.to_python("2001/02/03"), datetime.datetime(2001, 2, 3, 0, 0)
+            self.medtf.to_python("2001/02/03"),
+            from_current_timezone(datetime.datetime(2001, 2, 3, 0, 0)),
         )
 
         self.assertEqual(
             self.ledtf.to_python("2018-02-12 17:06:46"),
-            datetime.datetime(2018, 2, 12, 17, 6, 46),
+            from_current_timezone(datetime.datetime(2018, 2, 12, 17, 6, 46)),
         )
         self.assertEqual(
             self.medtf.to_python("2018-02-12 17:06:46"),
-            datetime.datetime(2018, 2, 12, 17, 6, 46),
+            from_current_timezone(datetime.datetime(2018, 2, 12, 17, 6, 46)),
         )

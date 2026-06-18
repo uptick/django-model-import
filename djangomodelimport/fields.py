@@ -130,14 +130,11 @@ class DateTimeParserField(forms.DateTimeField):
         if value:
             try:
                 dayfirst = (
-                    not bool(re.match(r"^\d{4}.\d\d?.\d\d?", value))
-                    and not self.middle_endian
+                    not bool(re.match(r"^\d{4}.\d\d?.\d\d?", value)) and not self.middle_endian
                 )
                 return from_current_timezone(parser.parse(value, dayfirst=dayfirst))
             except (TypeError, ValueError, OverflowError):
-                raise forms.ValidationError(
-                    self.error_messages["invalid"], code="invalid"
-                )
+                raise forms.ValidationError(self.error_messages["invalid"], code="invalid")
 
         else:
             return None
@@ -164,9 +161,7 @@ class JSONField(forms.Field):
         kwargs["initial"] = dict
         super().__init__(**kwargs)
 
-    def validate_json(
-        self, value: str | None, is_serialized: bool = False
-    ) -> dict[str, Any]:
+    def validate_json(self, value: str | None, is_serialized: bool = False) -> dict[str, Any]:
         # if empty
         if value is None or value == "" or value == "null":
             value = "{}"
@@ -190,19 +185,13 @@ class JSONField(forms.Field):
 
         # ensure is a dictionary
         if not isinstance(dictionary, dict):
-            raise forms.ValidationError(
-                ("No lists or values allowed, only dictionaries")
-            )
+            raise forms.ValidationError(("No lists or values allowed, only dictionaries"))
 
         # convert any non string object into string
         for key, value in dictionary.items():
             if isinstance(value, dict) or isinstance(value, list):
                 dictionary[key] = json.dumps(value)
-            if (
-                isinstance(value, bool)
-                or isinstance(value, int)
-                or isinstance(value, float)
-            ):
+            if isinstance(value, bool) or isinstance(value, int) or isinstance(value, float):
                 if not is_serialized:  # Only convert if not from serializedfield
                     dictionary[key] = str(value).lower()
 

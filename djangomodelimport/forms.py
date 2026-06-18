@@ -125,9 +125,7 @@ class ImporterModelForm(
                     found_headers.append(
                         (
                             name,
-                            model_fields.get(name, {}).get(
-                                "label", name.replace("_", " ").title()
-                            ),
+                            model_fields.get(name, {}).get("label", name.replace("_", " ").title()),
                         )
                     )
 
@@ -148,9 +146,7 @@ class ImporterModelForm(
                 case SourceFieldSwitcher(fields=switch_fields):
                     # Containers a collections of ways to assign this field
                     for switch_field in switch_fields:
-                        field.sources.append(
-                            _get_headers(field_name, switch_field.widget)
-                        )
+                        field.sources.append(_get_headers(field_name, switch_field.widget))
                 case FlatRelatedField(fields=related_fields):
                     # Defines a way to create related objects from a set of headers
                     temp_source = []
