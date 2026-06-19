@@ -1,11 +1,13 @@
-from typing import Iterable, Any, TypeVar
+from collections.abc import Collection
+from typing import Any, cast
 
-from django.db.models import QuerySet
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+from django.db import models
 
-T = TypeVar("T")
 
-
-class CachedInstanceLoader(dict):
+class CachedInstanceLoader[Model: models.Model](
+    dict[str, Model | ObjectDoesNotExist | MultipleObjectsReturned]
+):
     """A clever cache that queries the database for any missing objects.
 
     If there's an error, it's only raised against the first item that causes it, then it's
@@ -14,19 +16,20 @@ class CachedInstanceLoader(dict):
 
     def __init__(
         self,
-        queryset: QuerySet[T],
-        to_field: str | Iterable[str],
+        queryset: models.QuerySet[Model],
+        to_field: str | Collection[str],
         *args: Any,
         **kwargs: Any,
-    ):
-        self.queryset = queryset
-        self.model = queryset.model
-        self.to_field = to_field
-        self.multifield = isinstance(to_field, list) or isinstance(to_field, tuple)
+    ) -> None:
+        self.queryset: models.QuerySet[Model] = queryset
+        self.model: type[Model] = queryset.model
+        self.to_field: str | Collection[str] = to_field
+        self.multifield: bool = isinstance(to_field, list) or isinstance(to_field, tuple)
+        super().__init__(*args, **kwargs)
 
-    def __getitem__(self, item: str) -> T:
+    def __getitem__(self, item: str) -> Model:
         # Attempt to get the currently cached value.
-        value = super(CachedInstanceLoader, self).__getitem__(item)
+        value = super().__getitem__(item)
 
         # If the cached value is an error, re-raise
         if isinstance(value, Exception):
@@ -34,11 +37,11 @@ class CachedInstanceLoader(dict):
 
         return value
 
-    def __missing__(self, value: str) -> T:
+    def __missing__(self, value: str) -> Model:
         if self.multifield:
-            params = dict(zip(self.to_field, value))
+            params = dict(zip(cast("Collection[str]", self.to_field), value, strict=False))
         else:
-            params = {self.to_field: value}
+            params = {cast("str", self.to_field): value}
 
         try:
             self[value] = inst = self.queryset.get(**params)

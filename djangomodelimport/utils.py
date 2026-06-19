@@ -1,5 +1,6 @@
 import dataclasses
-from typing import runtime_checkable, Protocol, Iterable
+from collections.abc import Iterable
+from typing import Protocol, runtime_checkable
 
 from django.forms import Field
 

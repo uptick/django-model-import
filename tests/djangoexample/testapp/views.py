@@ -2,10 +2,9 @@ from django.urls import reverse
 from django.views.generic.edit import CreateView, FormView
 
 import djangomodelimport
-
-from .forms import CitationForm, TestImportForm
-from .importers import CitationImporter
-from .models import Citation
+from testapp.forms import CitationForm, TestImportForm
+from testapp.importers import CitationImporter
+from testapp.models import Citation
 
 
 class TestImportView(FormView):

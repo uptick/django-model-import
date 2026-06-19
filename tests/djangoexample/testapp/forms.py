@@ -1,8 +1,7 @@
 from django import forms
 
 from djangomodelimport import JSONField
-
-from .models import Citation
+from testapp.models import Citation
 
 
 class TestImportForm(forms.Form):
