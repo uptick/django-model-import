@@ -16,13 +16,6 @@ from djangomodelimport.types import Cache
 from djangomodelimport.widgets import JSONFieldWidget
 
 
-class UseCacheMixin[Model: models.Model]:
-    instancecache: Cache[Model] | None = None
-
-    def set_cache(self, cache: Cache[Model]) -> None:
-        self.instancecache = cache
-
-
 class FieldMapping(TypedDict, total=False):
     to_field: str
 
@@ -49,13 +42,15 @@ class FlatRelatedField[Model: models.Model](forms.Field):
         super().__init__(*args, required=False, **kwargs)
 
 
-class CachedChoiceField[Model: models.Model](UseCacheMixin, forms.Field):
+class CachedChoiceField[Model: models.Model](forms.Field):
     """Use a CachedChoiceField when you have a large table of choices, but
     expect the number of different values that occur to be relatively small.
 
     If you expect a larger number of different values, you might want to use a
     PreloadedChoiceField.
     """
+
+    instancecache: Cache[Model] | None = None
 
     def __init__(
         self,
@@ -81,6 +76,9 @@ class CachedChoiceField[Model: models.Model](UseCacheMixin, forms.Field):
         if self.instancecache is None:
             raise self.model.DoesNotExist("No cache set")
         return self.instancecache[value]
+
+    def set_cache(self, cache: Cache[Model]) -> None:
+        self.instancecache = cache
 
     def clean(self, value: Any) -> Model | None:
         value = super().clean(value)
