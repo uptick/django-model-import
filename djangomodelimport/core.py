@@ -91,6 +91,13 @@ class ModelImporter[Model: models.Model, Form: ImporterModelForm]:
         skipped: int = 0
         failed: int = 0
         for i, row in enumerate(rows, start=1):
+            # Evaluate skip first
+            # So that the import doesn't die for no reason
+            to_be_skipped: bool = skip_func(row) if skip_func else False
+            if to_be_skipped:
+                skipped += 1
+                continue
+
             errors: FieldErrorList = []
             warnings: FieldErrorList = []
             instance: Model | None = None
@@ -98,14 +105,7 @@ class ModelImporter[Model: models.Model, Form: ImporterModelForm]:
                 row.get("id", "") == ""
             )  # If ID is blank we are creating a new row, otherwise we are updating
             to_be_updated: bool = not to_be_created
-            to_be_skipped: bool = skip_func(row) if skip_func else False
             import_form_class: type[Form] = ModelCreateForm if to_be_created else ModelUpdateForm
-
-            # Evaluate skip first
-            # So that the import doesn't die for no reason
-            if to_be_skipped:
-                skipped += 1
-                continue
 
             if to_be_created and not allow_insert:
                 errors = [("id", ErrorList(["Creating new rows is not permitted"]))]
