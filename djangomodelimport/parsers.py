@@ -46,6 +46,9 @@ class TablibCSVImportParser(TablibBaseImportParser):
         dataset = self.dataset_class()
         dataset.csv = data
 
+        if not dataset.headers:
+            return ([], [])
+
         header_map = self.get_soft_headings()
 
         # Make all our headings lowercase and sub in soft headings
