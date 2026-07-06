@@ -1,11 +1,11 @@
-from .core import ModelImporter
-from .forms import ImporterModelForm
-from .parsers import (
+from djangomodelimport.core import ModelImporter
+from djangomodelimport.forms import ImporterModelForm
+from djangomodelimport.parsers import (
     BaseImportParser,
     TablibCSVImportParser,
     TablibXLSXImportParser,
 )
-from .resultset import ImportResultRow, ImportResultSet
+from djangomodelimport.resultset import ImportResultRow, ImportResultSet
 
 __all__ = [
     "BaseImportParser",
@@ -17,4 +17,4 @@ __all__ = [
     "TablibXLSXImportParser",
 ]
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"

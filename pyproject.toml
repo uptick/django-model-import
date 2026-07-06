@@ -1,23 +1,21 @@
 [project]
 name = "django-model-import"
-version = "0.8.0"
+version = "0.9.0"
 description = "A Django library for importing CSVs and other structured data quickly using Django's ModelForm for validation and deserialisation into an instance."
 authors = [{ name = "Aidan Lister", email = "aidan@uptickhq.com" }]
-requires-python = ">=3.10,<4"
+requires-python = ">=3.12,<4"
 readme = "README.md"
 license = "MIT"
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "python-dateutil>=2.9.0,<3",
-    "tablib>=3.3.0,<4",
-    "django>=3.2.0,<7.0.0",
+  "python-dateutil>=2.9.0,<3",
+  "tablib>=3.0.0,<4",
+  "django>=3.2.0,<7.0.0",
 ]
 
 [project.urls]
@@ -27,9 +25,12 @@ Documentation = "https://github.com/uptick/django-model-import/tree/master/tests
 
 [dependency-groups]
 dev = [
-    "pytest==9.1.0",
-    "pytest-django==4.12.0",
-    "ruff==0.15.17",
+  "django-types==0.24.0",
+  "pyrefly==1.1.1",
+  "pytest==9.1.1",
+  "pytest-django==4.12.0",
+  "ruff==0.15.20",
+  "types-python-dateutil==2.9.0.20260518",
 ]
 
 [tool.uv]
@@ -42,21 +43,58 @@ module-root = ""
 [tool.ruff]
 line-length = 100
 
+[tool.ruff.lint]
+select = [
+  "B", # flake8-bugbear
+  "DTZ", # flake8-datetimez
+  "E", # pycodestyle
+  "F", # Pyflakes
+  "G", # log formatting
+  "I", # isort
+  "LOG", # logging
+  "N804", # invalid-first-argument-name-for-class-method
+  "N805", # invalid-first-argument-name-for-method
+  "PIE", # flake8-pie
+  "PYI016", # flake8-pyi duplicate-union-member
+  "PYI030", # flake8-pyi unnecessary-literal-union
+  "RET", # flake8-return
+  "RUF100", # ruff unused noqa
+  "RUF101", # ruff redirected noqa
+  "S", # flake8-bandit
+  "T10", # debugger
+  "T20", # flake8-print
+  "TC", # flake8-type-checking
+  "TID251", # flake8-tidy-imports
+  "TID252", # relative imports
+  "UP", # pyupgrade
+  "W", # pycodestyle
+  "INP001",
+]
+ignore = [
+  "E501"
+]
+
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
 [tool.ruff.lint.isort]
 section-order = [
-    "future",
-    "standard-library",
-    "third-party",
-    "django",
-    "first-party",
-    "local-folder",
+  "future",
+  "standard-library",
+  "third-party",
+  "django",
+  "first-party",
+  "local-folder",
 ]
 
 [tool.ruff.lint.isort.sections]
 django = ["django"]
+
+[tool.pyrefly]
+project-includes = [
+  "djangomodelimport/**/*.py*",
+  "djangomodelimport/**/*.ipynb",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.19,<0.12.0"]

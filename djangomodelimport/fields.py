@@ -1,25 +1,26 @@
 import datetime
 import json
 import re
-from typing import Any, Iterable
+from collections.abc import Collection
+from typing import Any, TypedDict
 
 from dateutil import parser
+
 from django import forms
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+from django.db import models
 from django.db.models import QuerySet
-from django.forms import Field
 from django.forms.utils import from_current_timezone
 
-from .widgets import JSONFieldWidget
+from djangomodelimport.types import Cache
+from djangomodelimport.widgets import JSONFieldWidget
 
 
-class UseCacheMixin:
-    instancecache = None
-
-    def set_cache(self, cache):
-        self.instancecache = cache
+class FieldMapping(TypedDict, total=False):
+    to_field: str
 
 
-class FlatRelatedField(forms.Field):
+class FlatRelatedField[Model: models.Model](forms.Field):
     """Will create the related object if it does not yet exist.
 
     All the magic happens in magic.py in FlatRelatedFieldFormMixin
@@ -27,21 +28,21 @@ class FlatRelatedField(forms.Field):
 
     def __init__(
         self,
-        queryset: QuerySet,
-        fields: dict[str, str] = None,
+        queryset: QuerySet[Model],
+        fields: dict[str, FieldMapping] | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        self.queryset = queryset
+        self.queryset: QuerySet[Model] = queryset
         # TODO: If lookup key is provided, allow using it to look up value instead of only
         # retrieving it off the object itself.
-        self.model = queryset.model
-        self.fields = fields or {}
+        self.model: type[Model] = queryset.model
+        self.fields: dict[str, FieldMapping] = fields or {}
         # Required is False, because this check gets passed down to the fields on the related instance.
-        return super().__init__(required=False, *args, **kwargs)
+        super().__init__(*args, required=False, **kwargs)
 
 
-class CachedChoiceField(UseCacheMixin, forms.Field):
+class CachedChoiceField[Model: models.Model](forms.Field):
     """Use a CachedChoiceField when you have a large table of choices, but
     expect the number of different values that occur to be relatively small.
 
@@ -49,24 +50,37 @@ class CachedChoiceField(UseCacheMixin, forms.Field):
     PreloadedChoiceField.
     """
 
+    instancecache: Cache[Model] | None = None
+
     def __init__(
         self,
-        queryset: QuerySet,
-        to_field: str | Iterable[str] = None,
-        none_if_missing: Any = None,
+        queryset: QuerySet[Model],
+        to_field: str | Collection[str] = "id",
+        none_if_missing: Collection[str] | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        self.queryset = queryset
-        self.model = queryset.model
-        self.to_field = to_field
-        self.none_if_missing = none_if_missing or []
+        self.queryset: QuerySet[Model] = queryset
+        self.model: type[Model] = queryset.model
+        self._model_verbose_name: str = (
+            self.model._meta.verbose_name or self.model.__name__
+        ).title()
+        self._model_verbose_name_plural: str = (
+            self.model._meta.verbose_name_plural or self.model.__name__ + "s"
+        ).title()
+        self.to_field: str | Collection[str] = to_field
+        self.none_if_missing: Collection[str] = none_if_missing or []
         super().__init__(*args, **kwargs)
 
-    def get_from_cache(self, value: Any) -> Any:
+    def get_from_cache(self, value: Any) -> Model | ObjectDoesNotExist | MultipleObjectsReturned:
+        if self.instancecache is None:
+            raise self.model.DoesNotExist("No cache set")
         return self.instancecache[value]
 
-    def clean(self, value: Any) -> Any:
+    def set_cache(self, cache: Cache[Model]) -> None:
+        self.instancecache = cache
+
+    def clean(self, value: Any) -> Model | None:
         value = super().clean(value)
 
         # Fast fail if no value provided
@@ -85,16 +99,16 @@ class CachedChoiceField(UseCacheMixin, forms.Field):
 
         # Try and get the value from the loader
         try:
+            # pyrefly: ignore [bad-return]
             return self.get_from_cache(value)
-        except self.model.DoesNotExist:
+        except self.model.DoesNotExist as err:
             raise forms.ValidationError(
-                "No %s matching '%s'." % (self.model._meta.verbose_name.title(), value)
-            )
-        except self.model.MultipleObjectsReturned:
+                f"No {self._model_verbose_name} matching '{value}'."
+            ) from err
+        except self.model.MultipleObjectsReturned as err:
             raise forms.ValidationError(
-                "Multiple %s matching '%s'. Expected just one."
-                % (self.model._meta.verbose_name_plural.title(), value)
-            )
+                f"Multiple {self._model_verbose_name_plural} matching '{value}'. Expected just one."
+            ) from err
 
 
 class PreloadedChoiceField(forms.Field):
@@ -121,11 +135,11 @@ class DateTimeParserField(forms.DateTimeField):
     - XXXX/XX/XX -> YYYY/MM/DD
     """
 
-    def __init__(self, middle_endian: bool = False, *args: Any, **kwargs: Any):
-        self.middle_endian = middle_endian
+    def __init__(self, middle_endian: bool = False, *args: Any, **kwargs: Any) -> None:
+        self.middle_endian: bool = middle_endian
         super().__init__(*args, **kwargs)
 
-    def to_python(self, value: str) -> datetime.datetime:
+    def to_python(self, value: str | None) -> datetime.datetime | None:
         value = (value or "").strip()
         if value:
             try:
@@ -133,8 +147,8 @@ class DateTimeParserField(forms.DateTimeField):
                     not bool(re.match(r"^\d{4}.\d\d?.\d\d?", value)) and not self.middle_endian
                 )
                 return from_current_timezone(parser.parse(value, dayfirst=dayfirst))
-            except (TypeError, ValueError, OverflowError):
-                raise forms.ValidationError(self.error_messages["invalid"], code="invalid")
+            except (TypeError, ValueError, OverflowError) as err:
+                raise forms.ValidationError(self.error_messages["invalid"], code="invalid") from err
 
         else:
             return None
@@ -180,12 +194,12 @@ class JSONField(forms.Field):
             # if not a string we'll check at the next control if it's a dict
             else:
                 dictionary = value
-        except ValueError as e:
-            raise forms.ValidationError(("Invalid JSON: {0}").format(e))
+        except ValueError as err:
+            raise forms.ValidationError(f"Invalid JSON: {err}") from err
 
         # ensure is a dictionary
         if not isinstance(dictionary, dict):
-            raise forms.ValidationError(("No lists or values allowed, only dictionaries"))
+            raise forms.ValidationError("No lists or values allowed, only dictionaries")
 
         # convert any non string object into string
         for key, value in dictionary.items():
@@ -197,7 +211,7 @@ class JSONField(forms.Field):
 
         return dictionary
 
-    def to_python(self, value: str) -> dict[str, Any]:
+    def to_python(self, value: str | None) -> dict[str, Any] | None:
         return self.validate_json(value)
 
     def render(self, name: str, value: str, attrs: Any = None) -> Any:
@@ -205,12 +219,10 @@ class JSONField(forms.Field):
         # doesn't show anything for None, empty strings or empty dictionaries
         if value and not isinstance(value, str):
             value = json.dumps(value, sort_keys=True, indent=4)
-        return super().render(name, value, attrs)
+        return value
 
 
 class SourceFieldSwitcher(forms.Field):
-    fields = None
-
-    def __init__(self, *fields: Field, **kwargs: Any) -> None:
-        self.fields = fields
+    def __init__(self, *fields: forms.Field, **kwargs: Any) -> None:
+        self.fields: tuple[forms.Field, ...] = fields
         super().__init__(**kwargs)

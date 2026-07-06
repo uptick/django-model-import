@@ -1,41 +1,54 @@
-from django.db import transaction
+from collections.abc import Callable, MutableMapping, Sequence
+from typing import Any, cast
 
-from .caches import SimpleDictCache
-from .formclassbuilder import FormClassBuilder
-from .resultset import ImportResultSet
+from django.db import models, transaction
+from django.db.models import QuerySet
+from django.forms.utils import ErrorList
+
+from djangomodelimport.caches import SimpleDictCache
+from djangomodelimport.exceptions import InvalidFormException
+from djangomodelimport.formclassbuilder import FormClassBuilder
+from djangomodelimport.forms import ImporterModelForm
+from djangomodelimport.resultset import ImportResultRow, ImportResultSet
+from djangomodelimport.types import Data, FieldErrorList
 
 
-class ModelImporter:
+class ModelImporter[Model: models.Model, Form: ImporterModelForm]:
     """A base class which parses and processes a CSV import, and handles the priming of any required caches."""
 
-    def __init__(self, modelimportformclass) -> None:
+    def __init__(self, modelimportformclass: type[Form]) -> None:
         """
         @param modelimportformclass The ImporterModelForm class (which extends a simple ModelForm)
         """
-        self.instances = []
-        self.errors = []
-        self.modelimportformclass = modelimportformclass
-        self.model = modelimportformclass.Meta.model
-        self.update_cache = None
-        self.update_queryset = None
+        self.instances: Sequence[Model] = []
+        self.errors: FieldErrorList = []
+        self.modelimportformclass: type[Form] = modelimportformclass
+        if modelimportformclass._meta.model is None:
+            raise InvalidFormException("ImporterModelForm must be bound to a model")
+        self.model: type[Model] = cast("type[Model]", modelimportformclass._meta.model)
+        self.update_cache: MutableMapping[str, Model] | None = None
+        self.update_queryset: QuerySet[Model] = self.model.objects.none()
+        self._model_verbose_name = (self.model._meta.verbose_name or self.model.__name__).title()
 
-    def get_for_update(self, pk):
-        return self.update_cache[pk] if self.update_cache else self.update_queryset.get(pk=pk)
+    def get_for_update(self, pk: Any) -> Model:
+        if self.update_cache:
+            return self.update_cache[pk]
+        return self.update_queryset.get(pk=pk)
 
     @transaction.atomic
-    def process(
+    def process[ResultSet: ImportResultSet, Author](
         self,
-        headers,
-        rows,
-        commit=False,
-        allow_update=True,
-        allow_insert=True,
-        limit_to_queryset=None,
-        author=None,
-        progress_logger=None,
-        skip_func=None,
-        resultset_cls=ImportResultSet,
-    ):
+        headers: Sequence[str],
+        rows: Sequence[Data],
+        commit: bool = False,
+        allow_update: bool = True,
+        allow_insert: bool = True,
+        limit_to_queryset: QuerySet[Model] | None = None,
+        author: Author | None = None,
+        progress_logger: Callable[[ImportResultRow], ...] | None = None,
+        skip_func: Callable[..., bool] | None = None,
+        resultset_cls: type[ResultSet] = ImportResultSet,
+    ) -> ResultSet:
         """Process the data.
 
         @param limit_to_queryset A queryset which limits the instances which can be updated, and creates a cache of the
@@ -55,7 +68,7 @@ class ModelImporter:
             self.update_cache = {}
             if limit_to_queryset is not None:
                 for obj in self.update_queryset:
-                    self.update_cache[str(obj.id)] = obj
+                    self.update_cache[str(obj.id)] = obj  # type: ignore[missing-attribute]
 
         formclassbuilder = FormClassBuilder(self.modelimportformclass, headers)
 
@@ -73,31 +86,34 @@ class ModelImporter:
         sid = transaction.savepoint()
 
         # Start processing
-        created = updated = skipped = failed = 0
+        created: int = 0
+        updated: int = 0
+        skipped: int = 0
+        failed: int = 0
         for i, row in enumerate(rows, start=1):
-            errors = []
-            warnings = []
-            instance = None
-            to_be_created = (
-                row.get("id", "") == ""
-            )  # If ID is blank we are creating a new row, otherwise we are updating
-            to_be_updated = not to_be_created
-            to_be_skipped = skip_func(row) if skip_func else False
-            import_form_class = ModelCreateForm if to_be_created else ModelUpdateForm
-
             # Evaluate skip first
             # So that the import doesn't die for no reason
+            to_be_skipped: bool = skip_func(row) if skip_func else False
             if to_be_skipped:
                 skipped += 1
                 continue
 
+            errors: FieldErrorList = []
+            warnings: FieldErrorList = []
+            instance: Model | None = None
+            to_be_created: bool = (
+                row.get("id", "") == ""
+            )  # If ID is blank we are creating a new row, otherwise we are updating
+            to_be_updated: bool = not to_be_created
+            import_form_class: type[Form] = ModelCreateForm if to_be_created else ModelUpdateForm
+
             if to_be_created and not allow_insert:
-                errors = [("id", ["Creating new rows is not permitted"])]
+                errors = [("id", ErrorList(["Creating new rows is not permitted"]))]
                 importresult.append(i, row, errors, instance, to_be_created)
                 continue
 
             if to_be_updated and not allow_update:
-                errors = [("id", ["Updating existing rows is not permitted"])]
+                errors = [("id", ErrorList(["Updating existing rows is not permitted"]))]
                 importresult.append(i, row, errors, instance, to_be_created)
                 continue
 
@@ -110,9 +126,11 @@ class ModelImporter:
                         errors = [
                             (
                                 "id",
-                                [
-                                    f"{self.model._meta.verbose_name.title()} {row['id']} is an invalid format for an ID."
-                                ],
+                                ErrorList(
+                                    [
+                                        f"{self._model_verbose_name} {row['id']} is an invalid format for an ID."
+                                    ]
+                                ),
                             )
                         ]
                     else:
@@ -121,18 +139,16 @@ class ModelImporter:
                     errors = [
                         (
                             "id",
-                            [
-                                f"{self.model._meta.verbose_name.title()} {row['id']} does not exist."
-                            ],
+                            ErrorList([f"{self._model_verbose_name} {row['id']} does not exist."]),
                         )
                     ]
                 except KeyError:
                     errors = [
                         (
                             "id",
-                            [
-                                f"{self.model._meta.verbose_name.title()} {row['id']} cannot be updated."
-                            ],
+                            ErrorList(
+                                [f"{self._model_verbose_name} {row['id']} cannot be updated."]
+                            ),
                         )
                     ]
 
@@ -148,11 +164,13 @@ class ModelImporter:
                         if to_be_updated:
                             updated += 1
                     except Exception as err:
-                        errors = [(i, repr(err))]
+                        errors = [(str(i), ErrorList([repr(err)]))]
 
                 else:
                     # TODO: Filter out errors associated with FlatRelatedField
-                    errors = list(form.errors.items())
+                    errors = [
+                        (k, ErrorList([str(err) for err in v])) for k, v in form.errors.items()
+                    ]
 
                 warnings = list(form.warnings.items())
 

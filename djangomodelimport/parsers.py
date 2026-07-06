@@ -1,11 +1,17 @@
+from typing import Any
+
+from djangomodelimport.forms import ImporterModelForm
+from djangomodelimport.types import Data
+
+
 class BaseImportParser:
-    def __init__(self, modelvalidator):
+    def __init__(self, modelvalidator: ImporterModelForm) -> None:
         """We provide the modelvalidator to get some Meta information about
         valid fields, and any soft headings.
         """
-        self.modelvalidator = modelvalidator
+        self.modelvalidator: ImporterModelForm = modelvalidator
 
-    def get_soft_headings(self):
+    def get_soft_headings(self) -> dict[str, str]:
         # Soft headings are used to provide similar heading suggestions
         # and look like this: {the field name: [list of other possible names] }
         # eg.
@@ -23,7 +29,7 @@ class BaseImportParser:
                         header_map[renamefrom.lower()] = renameto.lower()
         return header_map
 
-    def parse(self, data):
+    def parse(self, data: Data) -> tuple[list[str], list[dict[str, Any]]]:
         """Parsers should return a tuple containing (headings, data)
 
         They should also take a dictionary of soft_headings which map
@@ -33,17 +39,18 @@ class BaseImportParser:
 
 
 class TablibBaseImportParser(BaseImportParser):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # Inline import, so tablib is only grabbed if/when this Parser is instanciated.
         from tablib import Dataset
 
-        self.dataset_class = Dataset
+        self.dataset_class: type[Dataset] = Dataset
         super().__init__(*args, **kwargs)
 
 
 class TablibCSVImportParser(TablibBaseImportParser):
-    def parse(self, data):
+    def parse(self, data: Data) -> tuple[list[str], list[dict[str, Any]]]:
         dataset = self.dataset_class()
+        # pyrefly: ignore [missing-attribute]
         dataset.csv = data
 
         if not dataset.headers:
@@ -52,21 +59,27 @@ class TablibCSVImportParser(TablibBaseImportParser):
         header_map = self.get_soft_headings()
 
         # Make all our headings lowercase and sub in soft headings
+        # pyrefly: ignore [bad-argument-type]
         for col_id, header in enumerate(dataset.headers):  # replace it in headers if found
             header_name = header.strip().lower()
+            # pyrefly: ignore [unsupported-operation]
             dataset.headers[col_id] = header_name
             if header_name in header_map.keys():
+                # pyrefly: ignore [unsupported-operation]
                 dataset.headers[col_id] = header_map[header_name]
 
-        return (dataset.headers, dataset.dict)
+        # pyrefly: ignore [bad-return]
+        return dataset.headers, dataset.dict
 
 
 class TablibXLSXImportParser(TablibBaseImportParser):
-    def parse(self, data):
+    def parse(self, data: Data) -> tuple[list[str], list[dict[str, Any]]]:
         dataset = self.dataset_class()
         # TODO: This does not currently work, as dataset.xlsx cannot be set.
         # http://docs.python-tablib.org/en/latest/api/#tablib.Dataset.xlsx
         # We can wait for it to be supported, or in the meantime, use this converter:
         # https://github.com/dilshod/xlsx2csv
+        # pyrefly: ignore [missing-attribute]
         dataset.xlsx = data  # CANNOT SET
-        return (dataset.headers, dataset.dict)
+        # pyrefly: ignore [bad-return]
+        return dataset.headers, dataset.dict

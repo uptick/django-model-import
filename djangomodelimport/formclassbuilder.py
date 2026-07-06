@@ -1,29 +1,33 @@
+from collections.abc import Sequence
 from functools import cached_property
-from typing import TypeVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from django.db.models.fields import NOT_PROVIDED
 from django.forms import modelform_factory
 
-from .fields import JSONField, FlatRelatedField
+from djangomodelimport.exceptions import InvalidFormException
+from djangomodelimport.fields import FlatRelatedField, JSONField
 
 if TYPE_CHECKING:
-    from . import ImporterModelForm  # NOQA
+    from django.db import models
 
-_ImporterForm = TypeVar("_ImporterForm", bound="ImporterModelForm")
+    from djangomodelimport.forms import ImporterModelForm
 
 
-class FormClassBuilder:
+class FormClassBuilder[Form: ImporterModelForm]:
     """Constructs instances of ImporterModelForm, taking headers into account."""
 
-    def __init__(self, modelimportformclass: _ImporterForm, headers: list[str]) -> None:
-        self.headers = headers
-        self.modelimportformclass = modelimportformclass
-        self.model = modelimportformclass.Meta.model
+    def __init__(self, modelimportformclass: type[Form], headers: Sequence[str]) -> None:
+        self.headers: Sequence[str] = headers
+        self.modelimportformclass: type[Form] = modelimportformclass
+        if modelimportformclass._meta.model is None:
+            raise InvalidFormException("ImporterModelForm must be bound to a model")
+        self.model: type[models.Model] = modelimportformclass._meta.model
 
-    def build_update_form(self) -> _ImporterForm:
+    def build_update_form(self) -> type[Form]:
         return self._get_modelimport_form_class(fields=self.valid_fields)
 
-    def build_create_form(self) -> _ImporterForm:
+    def build_create_form(self) -> type[Form]:
         # Combine valid & required fields; preserving order of valid fields.
         form_fields = self.valid_fields + list(set(self.required_fields) - set(self.valid_fields))
         return self._get_modelimport_form_class(fields=form_fields)
@@ -64,22 +68,25 @@ class FormClassBuilder:
             if (
                 getattr(f, "blank", True) is False
                 and getattr(f, "editable", True) is True
-                and f.default is NOT_PROVIDED
+                and getattr(f, "default", None) is NOT_PROVIDED
             ):
                 required_fields.append(f.name)
         return required_fields
 
-    def _get_modelimport_form_class(self, fields) -> _ImporterForm:
+    def _get_modelimport_form_class(self, fields: Sequence[str]) -> type[Form]:
         """Return a modelform for use with this data.
 
         We use a modelform_factory to dynamically limit the fields on the import,
         otherwise the absence of a value can be taken as false for boolean fields,
         where as we want the model's default value to kick in.
         """
-        klass = modelform_factory(
-            self.model,
-            form=self.modelimportformclass,
-            fields=fields,
+        klass = cast(
+            "type[Form]",
+            modelform_factory(
+                self.model,
+                form=self.modelimportformclass,
+                fields=fields,
+            ),
         )
         # Remove fields altogether if they haven't been specified in the import (makes sense for updates). #houseofcards..
         base_fields_to_del = set(klass.base_fields.keys()) - set(fields)

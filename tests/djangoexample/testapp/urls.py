@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path
 
-from .views import CitationCreateView, TestImportView
+from testapp.views import CitationCreateView, TestImportView
 
 urlpatterns = [
     path(r"^admin/", admin.site.urls),

@@ -1,7 +1,7 @@
 from django import forms
 
 import djangomodelimport.fields
-from .models import Author, Book, Citation, Company, Contact
+from testapp.models import Author, Book, Citation, Company, Contact
 
 
 class BookImporter(djangomodelimport.ImporterModelForm):

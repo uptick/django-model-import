@@ -1,7 +1,11 @@
 import datetime
+from zoneinfo import ZoneInfo
 
 from django.forms.utils import from_current_timezone
+from django.test import TestCase
 
+from djangomodelimport import ModelImporter, TablibCSVImportParser
+from djangomodelimport.fields import DateTimeParserField
 from testapp.importers import (
     BookImporter,
     BookImporterWithCache,
@@ -9,11 +13,6 @@ from testapp.importers import (
     CompanyImporter,
 )
 from testapp.models import Author, Book, Citation, Company, Contact
-
-from django.test import TestCase
-
-from djangomodelimport import ModelImporter, TablibCSVImportParser
-from djangomodelimport.fields import DateTimeParserField
 
 sample_csv_1_books = """id,name,author
 ,How to be awesome,Aidan Lister
@@ -385,45 +384,47 @@ class FlatRelatedFieldTests(TestCase):
 
 
 class DateTimeParserFieldTests(TestCase):
-    def setUp(self):
-        self.ledtf = DateTimeParserField()  # Little-endian
-        self.medtf = DateTimeParserField(middle_endian=True)
+    @classmethod
+    def setUpTestData(cls):
+        cls.ledtf = DateTimeParserField()  # Little-endian
+        cls.medtf = DateTimeParserField(middle_endian=True)
+        cls.tz = ZoneInfo("America/Chicago")
 
     def test_little_endian_parsing(self):
         self.assertEqual(
             self.ledtf.to_python("01/02/03"),
-            from_current_timezone(datetime.datetime(2003, 2, 1, 0, 0)),
+            from_current_timezone(datetime.datetime(2003, 2, 1, 0, 0, tzinfo=self.tz)),
         )
         self.assertEqual(
             self.ledtf.to_python("01/02/2003"),
-            from_current_timezone(datetime.datetime(2003, 2, 1, 0, 0)),
+            from_current_timezone(datetime.datetime(2003, 2, 1, 0, 0, tzinfo=self.tz)),
         )
 
     def test_middle_endian_parsing(self):
         self.assertEqual(
             self.medtf.to_python("01/02/03"),
-            from_current_timezone(datetime.datetime(2003, 1, 2, 0, 0)),
+            from_current_timezone(datetime.datetime(2003, 1, 2, 0, 0, tzinfo=self.tz)),
         )
         self.assertEqual(
             self.medtf.to_python("01/02/2003"),
-            from_current_timezone(datetime.datetime(2003, 1, 2, 0, 0)),
+            from_current_timezone(datetime.datetime(2003, 1, 2, 0, 0, tzinfo=self.tz)),
         )
 
     def test_big_endian_parsing(self):
         self.assertEqual(
             self.ledtf.to_python("2001/02/03"),
-            from_current_timezone(datetime.datetime(2001, 2, 3, 0, 0)),
+            from_current_timezone(datetime.datetime(2001, 2, 3, 0, 0, tzinfo=self.tz)),
         )
         self.assertEqual(
             self.medtf.to_python("2001/02/03"),
-            from_current_timezone(datetime.datetime(2001, 2, 3, 0, 0)),
+            from_current_timezone(datetime.datetime(2001, 2, 3, 0, 0, tzinfo=self.tz)),
         )
 
         self.assertEqual(
             self.ledtf.to_python("2018-02-12 17:06:46"),
-            from_current_timezone(datetime.datetime(2018, 2, 12, 17, 6, 46)),
+            from_current_timezone(datetime.datetime(2018, 2, 12, 17, 6, 46, tzinfo=self.tz)),
         )
         self.assertEqual(
             self.medtf.to_python("2018-02-12 17:06:46"),
-            from_current_timezone(datetime.datetime(2018, 2, 12, 17, 6, 46)),
+            from_current_timezone(datetime.datetime(2018, 2, 12, 17, 6, 46, tzinfo=self.tz)),
         )

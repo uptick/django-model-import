@@ -1,35 +1,49 @@
 from collections import defaultdict
 from functools import partial
+from typing import Any, ClassVar
 
 from django import forms
 from django.core.exceptions import NON_FIELD_ERRORS
+from django.db import models
+from django.forms.utils import ErrorList
 
-from .fields import FlatRelatedField, SourceFieldSwitcher
-from .magic import (
+from djangomodelimport.fields import FlatRelatedField, SourceFieldSwitcher
+from djangomodelimport.magic import (
     CachedChoiceFieldFormMixin,
     FlatRelatedFieldFormMixin,
     JSONFieldFormMixin,
     SourceFieldSwitcherMixin,
 )
-from .utils import HasSource, ImportFieldMetadata
-from .widgets import CompositeLookupWidget
+from djangomodelimport.types import Cache, Data
+from djangomodelimport.utils import HasSource, ImportFieldMetadata
+from djangomodelimport.widgets import CompositeLookupWidget
 
 
-class ImporterModelForm(
+class ImporterModelForm[Model: models.Model, Author](
     SourceFieldSwitcherMixin,
-    JSONFieldFormMixin,
+    JSONFieldFormMixin[Model],
     FlatRelatedFieldFormMixin,
-    CachedChoiceFieldFormMixin,
+    CachedChoiceFieldFormMixin[Model],
     forms.ModelForm,
 ):
     """Extends the ModelForm to prime our caches and tweaks the validation
     routines to ensure we are not doing too many queries with our cached fields.
     """
 
-    def __init__(self, data, caches, author=None, *args, **kwargs) -> None:
-        self.caches = caches
-        self.author = author
-        self._warnings = defaultdict(list)
+    Meta: ClassVar[type[Any]]
+    base_fields: ClassVar[dict[str, forms.Field]]
+
+    def __init__(
+        self,
+        data: Data,
+        caches: dict[str, Cache[Model]],
+        author: Author | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        self.caches: dict[str, Cache[Model]] = caches
+        self.author: Author | None = author
+        self._warnings: defaultdict[str, ErrorList] = defaultdict(ErrorList)
         super().__init__(data, *args, **kwargs)
 
     def add_warning(self, field: str, warning: str) -> None:
@@ -40,7 +54,7 @@ class ImporterModelForm(
         self._warnings[field].append(warning)
 
     @property
-    def warnings(self) -> dict[str, list[str]]:
+    def warnings(self) -> dict[str, ErrorList]:
         return dict(self._warnings)
 
     # This improves preview performance but eliminates validation on uniqueness constraints

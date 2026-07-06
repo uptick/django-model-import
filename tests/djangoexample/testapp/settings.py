@@ -1,6 +1,6 @@
 import os
 
-SECRET_KEY = "cheese"
+SECRET_KEY = "cheese"  # noqa: S105
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
