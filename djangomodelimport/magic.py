@@ -1,3 +1,4 @@
+import copy
 from collections.abc import Callable, Container, Hashable, Iterable
 from typing import Any, ClassVar, cast
 
@@ -187,9 +188,13 @@ class SourceFieldSwitcherMixin:
 
     def __init__(self, data: Data, *args: Any, **kwargs: Any) -> None:
         """Swap out all `SourceFieldSwitcher` fields for actual fields."""
+        # Swap on this form's own copy. Writing to the class's base_fields would carry
+        # one file's choice into every later form, and into get_field_metadata().
+        base_fields = dict(self.__class__.base_fields)
         for field_name, field_class in self.__class__.base_fields.items():
             if not isinstance(field_class, SourceFieldSwitcher):
                 continue
+            column_options = []
             for actual_field in field_class.fields:
                 if isinstance(actual_field.widget, NamedSourceWidget):
                     lookup = {actual_field.widget.source}
@@ -198,7 +203,14 @@ class SourceFieldSwitcherMixin:
                 else:
                     lookup = {field_name}
                 if lookup < set(data.keys()):
-                    self.base_fields[field_name] = actual_field
+                    base_fields[field_name] = actual_field
                     break
+                column_options.append(sorted(lookup))
+            else:
+                unmatched = copy.copy(field_class)
+                unmatched.column_options = column_options
+                base_fields[field_name] = unmatched
+        # pyrefly: ignore [read-only]
+        self.base_fields = base_fields
         kwargs["data"] = data
         super().__init__(*args, **kwargs)

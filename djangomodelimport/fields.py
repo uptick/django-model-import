@@ -225,4 +225,18 @@ class JSONField(forms.Field):
 class SourceFieldSwitcher(forms.Field):
     def __init__(self, *fields: forms.Field, **kwargs: Any) -> None:
         self.fields: tuple[forms.Field, ...] = fields
+        # Set by SourceFieldSwitcherMixin when none of `fields` match the data's columns.
+        self.column_options: list[list[str]] = []
         super().__init__(**kwargs)
+
+    def clean(self, value: Any) -> Any:
+        # Only reached when no field matched the columns, so a value can't be looked up.
+        # Without this, the raw value would be assigned to the model field as-is.
+        if value not in self.empty_values:
+            options = "; ".join(" and ".join(columns) for columns in self.column_options)
+            raise forms.ValidationError(
+                "None of the supported columns for this field were provided. Use one of: %(options)s.",
+                code="no_matching_columns",
+                params={"options": options},
+            )
+        return super().clean(value)
