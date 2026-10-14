@@ -1,6 +1,7 @@
 from django import forms
 
 import djangomodelimport.fields
+import djangomodelimport.widgets
 from testapp.models import Author, Book, Citation, Company, Contact
 
 
@@ -20,6 +21,29 @@ class BookImporterWithCache(djangomodelimport.ImporterModelForm):
     name = forms.CharField()
     author = djangomodelimport.fields.CachedChoiceField(
         queryset=Author.objects.all(), to_field="name"
+    )
+
+    class Meta:
+        model = Book
+        fields = (
+            "name",
+            "author",
+        )
+
+
+class BookImporterWithSourceSwitch(djangomodelimport.ImporterModelForm):
+    name = forms.CharField()
+    author = djangomodelimport.fields.SourceFieldSwitcher(
+        djangomodelimport.fields.CachedChoiceField(
+            queryset=Author.objects.all(),
+            to_field="name",
+            widget=djangomodelimport.widgets.NamedSourceWidget(source="author_name"),
+        ),
+        djangomodelimport.fields.CachedChoiceField(
+            queryset=Author.objects.all(),
+            to_field="id",
+            widget=djangomodelimport.widgets.NamedSourceWidget(source="author_id"),
+        ),
     )
 
     class Meta:

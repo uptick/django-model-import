@@ -5,10 +5,11 @@ from django.forms.utils import from_current_timezone
 from django.test import TestCase
 
 from djangomodelimport import ModelImporter, TablibCSVImportParser
-from djangomodelimport.fields import DateTimeParserField
+from djangomodelimport.fields import DateTimeParserField, SourceFieldSwitcher
 from testapp.importers import (
     BookImporter,
     BookImporterWithCache,
+    BookImporterWithSourceSwitch,
     CitationImporter,
     CompanyImporter,
 )
@@ -252,6 +253,28 @@ class CachedChoiceFieldTests(TestCase):
         # Make sure we get two rows
         self.assertEqual(len(res), 7)
         self.assertEqual(res[0].instance.author.name, "Aidan Lister")
+
+
+class SourceFieldSwitcherTests(TestCase):
+    def test_unmatched_columns_give_a_row_error_and_leave_the_class_alone(self):
+        author = Author.objects.create(name="Aidan Lister")
+        importer = ModelImporter(BookImporterWithSourceSwitch)
+        parser = TablibCSVImportParser(BookImporterWithSourceSwitch)
+
+        headers, rows = parser.parse(f"id,name,author_id\n,Matched,{author.id}\n")
+        matched = importer.process(headers, rows, commit=True)
+        self.assertEqual(matched.get_errors(), [])
+        # The matched choice must not stick to the class for later imports.
+        self.assertIsInstance(
+            BookImporterWithSourceSwitch.base_fields["author"], SourceFieldSwitcher
+        )
+
+        # "author" matches neither author_name nor author_id, so the text can't be looked up.
+        headers, rows = parser.parse("id,name,author\n,Unmatched,Aidan Lister\n")
+        unmatched = importer.process(headers, rows, commit=True)
+        ((line, errors),) = unmatched.get_errors()
+        self.assertIn("Use one of: author_name; author_id.", str(dict(errors)["author"]))
+        self.assertFalse(Book.objects.filter(name="Unmatched").exists())
 
 
 class JSONFieldTests(TestCase):
